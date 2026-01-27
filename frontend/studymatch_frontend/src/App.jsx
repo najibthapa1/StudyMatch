@@ -1,30 +1,22 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import './index.css'
-import { Landing } from '@/components/pages/Landing'
-import { Login } from '@/components/pages/Login'
-import { Signup } from '@/components/pages/Signup'
-import { EmailVerification } from '@/components/pages/EmailVerification'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Landing } from './components/pages/Landing';
+import { Signup } from './components/pages/Signup';
+import { Login } from './components/pages/Login';
+import { EmailVerification } from './components/pages/EmailVerification';
+import { Dashboard } from './components/pages/Dashboard';
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route
-          path="/login"
-          element={<Login onLogin={() => {}} onAdminLogin={() => {}} />}
-        />
-        <Route
-          path="/signup"
-          element={<Signup onSignup={() => {}} />}
-        />
-        <Route 
-            path="/verify-email" 
-            element={<EmailVerification />} 
-          />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
-    </BrowserRouter>
-  )
+    </Router>
+  );
 }
 
-export default App
+export default App;
