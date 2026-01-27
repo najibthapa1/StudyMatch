@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import User, Profile
+from .models import User, Profile, StudyGoal, Activity
 
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
+    email = serializers.EmailField()
     password = serializers.CharField(min_length=8, write_only=True)
     university = serializers.CharField(max_length=255)
     major = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -64,12 +65,18 @@ class UserSerializer(serializers.ModelSerializer):
         try:
             profile = obj.profile
             return {
+                'profile_id': str(profile.profile_id),
                 'full_name': profile.full_name,
                 'bio': profile.bio,
                 'university_name': profile.university_name,
                 'course': profile.course,
                 'year': profile.year,
                 'interests': profile.interests,
+                'projects': profile.projects,
+                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
+                'initials': profile.get_initials(),
+                'created_at': profile.created_at,
+                'updated_at': profile.updated_at,
             }
         except:
             return None
@@ -84,3 +91,35 @@ class LoginSerializer(serializers.Serializer):
 class VerifyEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6, min_length=6)
+
+# Study Goal Serializer
+class StudyGoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudyGoal
+        fields = [
+            'goal_id',
+            'title',
+            'is_completed',
+            'created_at',
+            'updated_at',
+            'completed_at'
+        ]
+        read_only_fields = ['goal_id', 'created_at', 'updated_at']
+
+# Activity Serializer
+class ActivitySerializer(serializers.ModelSerializer):
+    time_ago = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Activity
+        fields = [
+            'activity_id',
+            'activity_type',
+            'action',
+            'description',
+            'created_at',
+            'time_ago'
+        ]
+    
+    def get_time_ago(self, obj):
+        return obj.get_time_ago()
