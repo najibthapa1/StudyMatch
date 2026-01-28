@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User, EmailVerification
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer
+from .models import User, EmailVerification, Activity
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer, ActivitySerializer
 from .utils import generate_verification_code, send_verification_email
 
 
@@ -192,3 +192,132 @@ def login(request):
         'tokens': tokens,
         'user': user_data
     }, status=status.HTTP_200_OK)
+
+
+# Profile Management Views
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_profile(request):
+    """Get current user's profile"""
+    try:
+        from .serializers import UserSerializer
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    """Update current user's profile"""
+    try:
+        from .serializers import UserSerializer
+        user = request.user
+        profile = user.profile
+        
+        # Update profile fields
+        profile_data = request.data.get('profile', {})
+        
+        if 'full_name' in profile_data:
+            profile.full_name = profile_data['full_name']
+        if 'bio' in profile_data:
+            profile.bio = profile_data['bio']
+        if 'university_name' in profile_data:
+            profile.university_name = profile_data['university_name']
+        if 'course' in profile_data:
+            profile.course = profile_data['course']
+        if 'year' in profile_data:
+            profile.year = profile_data['year']
+        if 'interests' in profile_data:
+            profile.interests = profile_data['interests']
+        if 'projects' in profile_data:
+            profile.projects = profile_data['projects']
+        
+        profile.save()
+        
+        serializer = UserSerializer(user)
+        return Response(
+            {
+                'message': 'Profile updated successfully',
+                'user': serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    """Upload profile picture to Cloudinary"""
+    try:
+        from .serializers import UserSerializer
+        
+        if 'profile_picture' not in request.FILES:
+            return Response(
+                {'error': 'No file provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        profile = request.user.profile
+        profile.profile_picture = request.FILES['profile_picture']
+        profile.save()
+        
+        serializer = UserSerializer(request.user)
+        return Response(
+            {
+                'message': 'Profile picture uploaded successfully',
+                'user': serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_stats(request):
+    """Get user statistics"""
+    try:
+        stats = {
+            'connections': 0,
+            'messages': 0,
+            'match_rate': 0,
+            'projects_completed': 0,
+            'study_hours': 0
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_activity_timeline(request):
+    """Get user's activity timeline"""
+    try:
+        
+        activities = Activity.objects.filter(user=request.user)[:10]
+        serializer = ActivitySerializer(activities, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
