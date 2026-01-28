@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import User, EmailVerification, Activity
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer, ActivitySerializer
+from .models import User, EmailVerification, Activity, StudyGoal
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer, ActivitySerializer, StudyGoalSerializer
 from .utils import generate_verification_code, send_verification_email
 
 
@@ -200,7 +200,6 @@ def login(request):
 def get_profile(request):
     """Get current user's profile"""
     try:
-        from .serializers import UserSerializer
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
@@ -214,7 +213,6 @@ def get_profile(request):
 def update_profile(request):
     """Update current user's profile"""
     try:
-        from .serializers import UserSerializer
         user = request.user
         profile = user.profile
         
@@ -257,9 +255,7 @@ def update_profile(request):
 @permission_classes([IsAuthenticated])
 def upload_profile_picture(request):
     """Upload profile picture to Cloudinary"""
-    try:
-        from .serializers import UserSerializer
-        
+    try:        
         if 'profile_picture' not in request.FILES:
             return Response(
                 {'error': 'No file provided'},
@@ -316,6 +312,140 @@ def get_activity_timeline(request):
         serializer = ActivitySerializer(activities, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
         
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+ # Study Goals 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_study_goals(request):
+    """Get all study goals for current user"""
+    try:
+        goals = StudyGoal.objects.filter(user=request.user)
+        serializer = StudyGoalSerializer(goals, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_study_goal(request):
+    """Create a new study goal"""
+    try:
+        title = request.data.get('title')
+        
+        if not title:
+            return Response(
+                {'error': 'Title is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        goal = StudyGoal.objects.create(
+            user=request.user,
+            title=title
+        )
+        
+        # Create activity
+        Activity.objects.create(
+            user=request.user,
+            activity_type='goal',
+            action='Created a new study goal',
+            description=title
+        )
+        
+        serializer = StudyGoalSerializer(goal)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_study_goal(request, goal_id):
+    """Update a study goal"""
+    try:
+        goal = StudyGoal.objects.get(goal_id=goal_id, user=request.user)
+        
+        if 'title' in request.data:
+            goal.title = request.data['title']
+        
+        goal.save()
+        serializer = StudyGoalSerializer(goal)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except StudyGoal.DoesNotExist:
+        return Response(
+            {'error': 'Study goal not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_study_goal(request, goal_id):
+    """Delete a study goal"""
+    try:
+        goal = StudyGoal.objects.get(goal_id=goal_id, user=request.user)
+        goal.delete()
+        
+        return Response(
+            {'message': 'Study goal deleted successfully'},
+            status=status.HTTP_200_OK
+        )
+        
+    except StudyGoal.DoesNotExist:
+        return Response(
+            {'error': 'Study goal not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_study_goal(request, goal_id):
+    """Toggle study goal completion status"""
+    try:
+        goal = StudyGoal.objects.get(goal_id=goal_id, user=request.user)
+        
+        goal.is_completed = not goal.is_completed
+        if goal.is_completed:
+            goal.completed_at = timezone.now()
+            # Create activity
+            Activity.objects.create(
+                user=request.user,
+                activity_type='goal',
+                action='Completed a study goal',
+                description=goal.title
+            )
+        else:
+            goal.completed_at = None
+        
+        goal.save()
+        serializer = StudyGoalSerializer(goal)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except StudyGoal.DoesNotExist:
+        return Response(
+            {'error': 'Study goal not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         return Response(
             {'error': str(e)},
