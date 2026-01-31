@@ -4,6 +4,8 @@ import { Signup } from './components/pages/Signup';
 import { Login } from './components/pages/Login';
 import { EmailVerification } from './components/pages/EmailVerification';
 import { Dashboard } from './components/pages/Dashboard';
+import { Profile } from './components/pages/Profile';
+
 
 function App() {
   return (
@@ -14,6 +16,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<EmailVerification />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile"   element={ <ProtectedRoute> <Profile /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
