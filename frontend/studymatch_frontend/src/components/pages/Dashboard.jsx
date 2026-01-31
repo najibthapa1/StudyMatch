@@ -1,92 +1,262 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { getUser, logout } from '../utils/api';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Users, MessageCircle, Calendar, UserCheck, BookOpen } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Navbar } from '../Navbar';
+import { getUserStats, getActivityTimeline, getUser } from '../../utils/api';
 
 export function Dashboard() {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get user from localStorage
-    const userData = getUser();
-    if (!userData) {
-      // Not logged in - redirect to login
-      navigate('/login');
-      return;
-    }
-    setUser(userData);
-  }, [navigate]);
+    fetchDashboardData();
+  }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get user from localStorage
+      const userData = getUser();
+      setUser(userData);
+      
+      // Fetch stats and activities
+      const [statsData, activityData] = await Promise.all([
+        getUserStats(),
+        getActivityTimeline()
+      ]);
+      
+      setStats(statsData);
+      setActivities(activityData);
+      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  const insights = [
+    { 
+      label: 'Connections', 
+      value: stats?.connections || '0', 
+      icon: Users 
+    },
+    { 
+      label: 'Messages', 
+      value: stats?.messages || '0', 
+      icon: MessageCircle 
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: 'Quick Chat',
+      description: 'Jump into your recent conversations',
+      icon: MessageCircle,
+      link: '/chat',
+    },
+    {
+      title: 'My Connections',
+      description: 'View and manage your network',
+      icon: UserCheck,
+      link: '/connections',
+    },
+    {
+      title: 'Discover Students',
+      description: 'Find new study partners with similar interests',
+      icon: Users,
+      link: '/connect',
+    },
+    {
+      title: 'Upcoming Events',
+      description: 'View and join academic events',
+      icon: Calendar,
+      link: '/guild',
+    },
+  ];
+
+  const studyTip = "Try the Pomodoro Technique: Study for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-30 minute break to recharge.";
+
+  const getFirstName = () => {
+    if (!user?.profile?.full_name) return 'there';
+    return user.profile.full_name.split(' ')[0];
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-24 pb-12 px-6 lg:px-8 bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">SM</span>
-              </div>
-              <span className="font-semibold">StudyMatch</span>
+    <>
+      <Navbar />
+      <div className="min-h-screen pt-24 pb-12 px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <h1 className="text-5xl tracking-tight mb-2">Welcome back, {getFirstName()}!</h1>
+            <p className="text-xl text-gray-600">Here's what's happening with your study network</p>
+          </motion.div>
+
+          {/* Insights Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12"
+          >
+            {insights.map((insight, index) => {
+              const Icon = insight.icon;
+              return (
+                <motion.div
+                  key={insight.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                  className="bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm text-gray-600 mb-1">{insight.label}</div>
+                      <div className="text-4xl">{insight.value}</div>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-gray-600" />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+
+          {/* Quick Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mb-12"
+          >
+            <h2 className="text-2xl tracking-tight mb-6">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {quickActions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <Link key={action.title} to={action.link}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                      className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-md transition-all cursor-pointer group"
+                    >
+                      <div className="w-12 h-12 mb-6 flex items-center justify-center flex-shrink-0">
+                        <Icon 
+                          size={40} 
+                          strokeWidth={1.5}
+                          className="text-gray-700 group-hover:text-black transition-colors" 
+                        />
+                      </div>
+                      <h3 className="text-xl mb-2">{action.title}</h3>
+                      <p className="text-gray-600">{action.description}</p>
+                    </motion.div>
+                  </Link>
+                );
+              })}
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="h-9"
+          </motion.div>
+
+          {/* Bottom Section - Recent Activity & Study Tip */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activity */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="bg-white rounded-2xl p-8 border border-gray-200"
             >
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+              <h2 className="text-2xl tracking-tight mb-6">Recent Activity</h2>
+              {activities.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No recent activity</p>
+              ) : (
+                <div className="space-y-6">
+                  {activities.slice(0, 3).map((activity, index) => {
+                    const iconMap = {
+                      connection: Users,
+                      message: MessageCircle,
+                      goal: BookOpen,
+                      event: Calendar,
+                    };
+                    const Icon = iconMap[activity.activity_type] || Users;
+                    
+                    return (
+                      <motion.div
+                        key={activity.activity_id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                        className="flex items-start space-x-4"
+                      >
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-5 h-5 text-gray-700" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-900">
+                            <span className="text-gray-600">{activity.action}</span>
+                          </p>
+                          {activity.description && (
+                            <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">{activity.time_ago}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
-          <h1 className="text-3xl font-bold mb-4">Welcome to StudyMatch! 🎉</h1>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-gray-600 mb-2">Your Profile:</p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p><strong>Name:</strong> {user.profile?.full_name || 'N/A'}</p>
-                <p><strong>Email:</strong> {user.email}</p>
-                <p><strong>Role:</strong> {user.role}</p>
-                <p><strong>University:</strong> {user.profile?.university_name || 'N/A'}</p>
-                <p><strong>Course:</strong> {user.profile?.course || 'N/A'}</p>
-                <p><strong>Year:</strong> {user.profile?.year || 'N/A'}</p>
-                <p><strong>Interests:</strong> {user.profile?.interests || 'N/A'}</p>
+            {/* Study Tip of the Day */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="bg-black text-white rounded-2xl p-8 flex flex-col"
+            >
+              <div className="flex items-center space-x-2 mb-6">
+                <BookOpen className="w-6 h-6" />
+                <h2 className="text-2xl tracking-tight">Study Tip of the Day</h2>
               </div>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-gray-600 mb-4">
-                Authentication is working! <br />
-                Next: Build profile, discovery, and messaging features.
+              <p className="text-gray-300 mb-8 flex-1">
+                {studyTip}
               </p>
-              
-              <div className="flex gap-4">
-                <Button className="bg-black hover:bg-gray-800" disabled>
-                  View Profile (Coming Soon)
-                </Button>
-                <Button variant="outline" disabled>
-                  Discover Students (Coming Soon)
-                </Button>
-              </div>
-            </div>
+              <Button 
+                variant="outline" 
+                className="w-full bg-white text-black hover:bg-gray-100 border-white"
+              >
+                Learn More
+              </Button>
+            </motion.div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
