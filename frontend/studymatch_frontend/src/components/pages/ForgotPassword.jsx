@@ -5,21 +5,33 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { forgotPassword } from '../../utils/api';
 
 export function ForgotPassword() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+        const result = await forgotPassword(email);
         
-        // Simulate sending email
-        setTimeout(() => {
+        if (result.success) {
+        alert('If this email is registered, you will receive a reset code. Please check your email.');
         navigate('/forgot-password-verify', { state: { email } });
-        }, 1000);
-    };
+        } else {
+        alert(result.error?.error || 'Failed to send reset code');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
     return (
         <div className="min-h-screen flex items-center justify-center px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-white to-gray-100">

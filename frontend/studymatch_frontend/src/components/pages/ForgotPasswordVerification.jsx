@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Mail, ArrowLeft } from 'lucide-react';
+import { verifyResetCode } from '../../utils/api';
+
 
 export function ForgotPasswordVerification() {
     const navigate = useNavigate();
@@ -42,15 +44,26 @@ export function ForgotPasswordVerification() {
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsVerifying(true);
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    
+    try {
+        const codeString = code.join('');
+        const result = await verifyResetCode(email, codeString);
         
-        // Simulate verification
-        setTimeout(() => {
-        navigate('/reset-password');
-        }, 1500);
-    };
+        if (result.success) {
+        navigate('/reset-password', { state: { email, code: codeString } });
+        } else {
+        alert(result.error?.error || 'Invalid code');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Verification failed. Please try again.');
+    } finally {
+        setIsVerifying(false);
+    }
+};
 
     const handleResend = () => {
         setCode(['', '', '', '', '', '']);

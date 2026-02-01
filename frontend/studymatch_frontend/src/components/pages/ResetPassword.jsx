@@ -5,16 +5,21 @@ import { Eye, EyeOff, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { resetPassword } from '../../utils/api';
+import { useLocation } from 'react-router-dom';
 
 export function ResetPassword() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const email = location.state?.email || '';
+    const code = location.state?.code || '';
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (password !== confirmPassword) {
@@ -29,10 +34,21 @@ export function ResetPassword() {
 
         setIsSubmitting(true);
         
-        // Simulate password reset
-        setTimeout(() => {
-        navigate('/login');
-        }, 1500);
+        try {
+        const result = await resetPassword(email, code, password);
+        
+        if (result.success) {
+            alert('Password reset successfully! Please login with your new password.');
+            navigate('/login');
+        } else {
+            alert(result.error?.error || 'Failed to reset password');
+        }
+        } catch (error) {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+        } finally {
+        setIsSubmitting(false);
+        }
     };
 
     return (
