@@ -85,6 +85,16 @@ class EmailVerification(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.code}"
     
+    # Password Reset Model
+class PasswordReset(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.user.email} - Password Reset"
     # Study Goals Model
 class StudyGoal(models.Model):
     goal_id = models.UUIDField(primary_key=True, default=uuid.uuid4)

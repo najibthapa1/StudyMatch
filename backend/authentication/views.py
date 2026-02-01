@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
@@ -446,6 +446,212 @@ def toggle_study_goal(request, goal_id):
             {'error': 'Study goal not found'},
             status=status.HTTP_404_NOT_FOUND
         )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    # Password Reset Views
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """Send password reset code to email"""
+    try:
+        email = request.data.get('email')
+        
+        if not email:
+            return Response(
+                {'error': 'Email is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not (security)
+            return Response(
+                {'message': 'If the email exists, a reset code has been sent'},
+                status=status.HTTP_200_OK
+            )
+        
+        # Generate reset code
+        from .models import PasswordReset
+        code = generate_verification_code()
+        expires_at = timezone.now() + timedelta(minutes=15)
+        
+        # Save reset code
+        PasswordReset.objects.create(
+            user=user,
+            code=code,
+            expires_at=expires_at
+        )
+        
+        # Send email
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        subject = 'Password Reset Code - StudyMatch'
+        message = f'''
+Hello,
+
+You requested to reset your password for StudyMatch.
+
+Your password reset code is: {code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this, please ignore this email.
+
+Best regards,
+StudyMatch Team
+        '''
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"Error sending email: {e}")
+        
+        return Response(
+            {'message': 'If the email exists, a reset code has been sent'},
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_reset_code(request):
+    """Verify password reset code"""
+    try:
+        from .models import PasswordReset
+        
+        email = request.data.get('email')
+        code = request.data.get('code')
+        
+        if not email or not code:
+            return Response(
+                {'error': 'Email and code are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Invalid code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find reset code
+        try:
+            reset = PasswordReset.objects.filter(
+                user=user,
+                code=code,
+                is_used=False
+            ).latest('created_at')
+        except PasswordReset.DoesNotExist:
+            return Response(
+                {'error': 'Invalid code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if expired
+        if timezone.now() > reset.expires_at:
+            return Response(
+                {'error': 'Code has expired'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(
+            {'message': 'Code verified successfully'},
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    """Reset password with verified code"""
+    try:
+        from .models import PasswordReset
+        
+        email = request.data.get('email')
+        code = request.data.get('code')
+        new_password = request.data.get('password')
+        
+        if not email or not code or not new_password:
+            return Response(
+                {'error': 'Email, code, and new password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate password length
+        if len(new_password) < 8:
+            return Response(
+                {'error': 'Password must be at least 8 characters'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Invalid request'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find reset code
+        try:
+            reset = PasswordReset.objects.filter(
+                user=user,
+                code=code,
+                is_used=False
+            ).latest('created_at')
+        except PasswordReset.DoesNotExist:
+            return Response(
+                {'error': 'Invalid code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if expired
+        if timezone.now() > reset.expires_at:
+            return Response(
+                {'error': 'Code has expired'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Reset password
+        user.set_password(new_password)
+        user.save()
+        
+        # Mark code as used
+        reset.is_used = True
+        reset.save()
+        
+        return Response(
+            {'message': 'Password reset successfully'},
+            status=status.HTTP_200_OK
+        )
+        
     except Exception as e:
         return Response(
             {'error': str(e)},

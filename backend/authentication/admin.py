@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Profile, EmailVerification, StudyGoal, Activity
+from .models import User, Profile, EmailVerification, StudyGoal, Activity, PasswordReset
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -52,7 +52,15 @@ class ActivityAdmin(admin.ModelAdmin):
     def user_email(self, obj):
         return obj.user.email
     user_email.short_description = 'Email'
-
+@admin.register(PasswordReset)
+class PasswordResetAdmin(admin.ModelAdmin):
+    list_display = ['user_email', 'code', 'is_used', 'expires_at', 'created_at']
+    list_filter = ['is_used', 'created_at']
+    
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'Email'
+    
 # Customize admin site headers
 admin.site.site_header = 'StudyMatch Administration'
 admin.site.site_title = 'StudyMatch Admin'
