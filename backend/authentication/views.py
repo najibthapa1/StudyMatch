@@ -6,13 +6,15 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Count, Q
+from .permissions import IsAdminUser
 
-from .models import User, EmailVerification, Activity, StudyGoal
+from .models import User, EmailVerification, Activity, StudyGoal, Profile
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer, ActivitySerializer, StudyGoalSerializer
 from .utils import generate_verification_code, send_verification_email
 
 
-# Generate JWT tokens for user
+# Generate JWT tokens for userß
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -657,3 +659,137 @@ def reset_password(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+# Admin Views
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def admin_login(request):
+    """
+    Admin login endpoint 
+    """
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    if not email or not password:
+        return Response(
+            {'error': 'Email and password are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    user = authenticate(email=email, password=password)
+    
+    if not user:
+        return Response(
+            {'error': 'Invalid credentials'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Check if user is admin
+    if user.role != 'admin' or not user.is_staff:
+        return Response(
+            {'error': 'Access denied. Admin privileges required.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    if not user.is_verified:
+        return Response(
+            {'error': 'Email not verified. Please verify your email first.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Generate tokens
+    refresh = RefreshToken.for_user(user)
+    
+    # Prepare response data
+    user_data = UserSerializer(user).data
+    
+    return Response({
+        'message': 'Admin login successful',
+        'user': user_data,
+        'tokens': {
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_dashboard_stats(request):
+    """
+    Get dashboard statistics for admin panel
+    """
+    try:
+        # Total users count
+        total_users = User.objects.count()
+        
+        # Verified vs unverified users
+        verified_users = User.objects.filter(is_verified=True).count()
+        unverified_users = User.objects.filter(is_verified=False).count()
+        
+        # Total profiles
+        total_profiles = Profile.objects.count()
+        
+        # Users by role
+        users_by_role = User.objects.values('role').annotate(count=Count('role'))
+        role_counts = {item['role']: item['count'] for item in users_by_role}
+        
+        # Recent signups (last 7 days)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        recent_users = User.objects.filter(created_at__gte=seven_days_ago).order_by('-created_at')[:10]
+        
+        recent_signups = []
+        for user in recent_users:
+            try:
+                profile = user.profile
+                recent_signups.append({
+                    'user_id': str(user.user_id),
+                    'email': user.email,
+                    'full_name': profile.full_name,
+                    'role': user.role,
+                    'is_verified': user.is_verified,
+                    'created_at': user.created_at.isoformat(),
+                })
+            except Profile.DoesNotExist:
+                recent_signups.append({
+                    'user_id': str(user.user_id),
+                    'email': user.email,
+                    'full_name': 'N/A',
+                    'role': user.role,
+                    'is_verified': user.is_verified,
+                    'created_at': user.created_at.isoformat(),
+                })
+        
+        stats = {
+            'total_users': total_users,
+            'verified_users': verified_users,
+            'unverified_users': unverified_users,
+            'total_profiles': total_profiles,
+            'users_by_role': role_counts,
+            'recent_signups': recent_signups,
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_verify_access(request):
+    """
+    Verify admin access for frontend route protection
+    """
+    return Response({
+        'message': 'Admin access verified',
+        'user': {
+            'email': request.user.email,
+            'role': request.user.role,
+            'is_staff': request.user.is_staff,
+        }
+    }, status=status.HTTP_200_OK)

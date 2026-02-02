@@ -21,4 +21,7 @@ urlpatterns = [
     path('study-goals/<uuid:goal_id>/update/', views.update_study_goal, name='update_study_goal'),
     path('study-goals/<uuid:goal_id>/delete/', views.delete_study_goal, name='delete_study_goal'),
     path('study-goals/<uuid:goal_id>/toggle/', views.toggle_study_goal, name='toggle_study_goal'),
+    path('admin/login/', views.admin_login, name='admin_login'),
+    path('admin/dashboard/stats/', views.admin_dashboard_stats, name='admin_dashboard_stats'),
+    path('admin/verify/', views.admin_verify_access, name='admin_verify_access'),
 ]

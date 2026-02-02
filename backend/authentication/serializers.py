@@ -123,3 +123,12 @@ class ActivitySerializer(serializers.ModelSerializer):
     
     def get_time_ago(self, obj):
         return obj.get_time_ago()
+    
+# Admin Dashboard Stats Serializer
+class AdminDashboardStatsSerializer(serializers.Serializer):
+    total_users = serializers.IntegerField()
+    verified_users = serializers.IntegerField()
+    unverified_users = serializers.IntegerField()
+    total_profiles = serializers.IntegerField()
+    recent_signups = serializers.ListField()
+    users_by_role = serializers.DictField()
