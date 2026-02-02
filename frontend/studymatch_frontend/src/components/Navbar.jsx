@@ -15,7 +15,7 @@ export function Navbar() {
         // Get user from localStorage
         const userData = getUser();
         setUser(userData);
-    }, [location]); // Re-fetch when location changes (e.g., after profile update)
+    }, [location]); 
 
     const navItems = [
         { path: '/dashboard', label: 'HOME' },
@@ -32,7 +32,6 @@ export function Navbar() {
         navigate('/login');
         } catch (error) {
         console.error('Logout error:', error);
-        // Even if API call fails, clear local storage and redirect
         localStorage.clear();
         navigate('/login');
         }

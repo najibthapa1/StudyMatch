@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Navbar } from '../Navbar';
 import { getUserStats, getActivityTimeline, getUser } from '../../utils/api';
 
-export function Dashboard() {
+export default function Dashboard() {
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState(null);
     const [activities, setActivities] = useState([]);

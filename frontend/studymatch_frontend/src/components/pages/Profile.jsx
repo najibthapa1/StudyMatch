@@ -20,7 +20,7 @@ import {
     getUser
     } from '../../utils/api';
 
-    export function Profile() {
+    export default function Profile() {
     const [user, setUser] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);

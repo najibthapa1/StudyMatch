@@ -2,9 +2,30 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
+import { isAuthenticated, getUser } from '../../utils/api';
 
 export function NotFound() {
     const navigate = useNavigate();
+    const getHomeRoute = () => {
+        if (!isAuthenticated()) {
+        return '/';
+        }
+
+        const user = getUser();
+        
+        // Check if admin
+        if (user?.role === 'admin') {
+        return '/admin/dashboard';
+        }
+
+        // Regular user → Dashboard
+        return '/dashboard';
+    };
+
+    const homeRoute = getHomeRoute();
+    const homeLabel = !isAuthenticated() 
+        ? 'Go to Home' 
+        : (getUser()?.role === 'admin' ? 'Go to Admin' : 'Go to Dashboard');
 
     return (
         <div className="min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-gray-50 to-gray-100">
@@ -52,10 +73,10 @@ export function NotFound() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Go Back
             </Button>
-            <Link to="/dashboard" className="w-full sm:w-auto">
+            <Link to={homeRoute} className="w-full sm:w-auto">
                 <Button className="w-full bg-black hover:bg-gray-800">
                 <Home className="w-4 h-4 mr-2" />
-                Go to Home
+                {homeLabel}
                 </Button>
             </Link>
             </motion.div>
