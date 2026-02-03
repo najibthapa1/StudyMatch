@@ -336,3 +336,137 @@ export const isAdmin = () => {
     const role = localStorage.getItem('user_role');
     return role === 'admin';
 };
+
+// Admin User Management
+export const getAdminUsers = async (params = {}) => {
+    try {
+        const queryParams = new URLSearchParams(params).toString();
+        const response = await api.get(`/auth/admin/users/${queryParams ? '?' + queryParams : ''}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get admin users error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch users' };
+    }
+};
+
+export const getAdminUserDetail = async (userId) => {
+    try {
+        const response = await api.get(`/auth/admin/users/${userId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get user detail error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch user details' };
+    }
+};
+
+export const updateAdminUser = async (userId, userData) => {
+    try {
+        const response = await api.put(`/auth/admin/users/${userId}/update/`, userData);
+        return response.data;
+    } catch (error) {
+        console.error('Update user error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to update user' };
+    }
+};
+
+export const suspendUser = async (userId, suspensionData) => {
+    try {
+        const response = await api.post(`/auth/admin/users/${userId}/suspend/`, suspensionData);
+        return response.data;
+    } catch (error) {
+        console.error('Suspend user error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to suspend user' };
+    }
+};
+
+export const unsuspendUser = async (userId) => {
+    try {
+        const response = await api.post(`/auth/admin/users/${userId}/unsuspend/`);
+        return response.data;
+    } catch (error) {
+        console.error('Unsuspend user error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to unsuspend user' };
+    }
+};
+
+export const deleteUser = async (userId) => {
+    try {
+        const response = await api.delete(`/auth/admin/users/${userId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete user error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete user' };
+    }
+};
+
+// Admin Guild Management
+export const getAdminGuilds = async () => {
+    try {
+        const response = await api.get('/auth/admin/guilds/');
+        return response.data;
+    } catch (error) {
+        console.error('Get guilds error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch guilds' };
+    }
+};
+
+export const getAdminGuildDetail = async (guildId) => {
+    try {
+        const response = await api.get(`/auth/admin/guilds/${guildId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get guild detail error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch guild details' };
+    }
+};
+
+// Admin Analytics
+export const getAdminAnalytics = async () => {
+    try {
+        const response = await api.get('/auth/admin/analytics/');
+        return response.data;
+    } catch (error) {
+        console.error('Get analytics error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch analytics' };
+    }
+};
+// Admin Notifications
+export const getAdminNotifications = async (filter = 'all') => {
+    try {
+        const response = await api.get(`/auth/admin/notifications/?filter=${filter}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get notifications error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch notifications' };
+    }
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+    try {
+        const response = await api.post(`/auth/admin/notifications/${notificationId}/read/`);
+        return response.data;
+    } catch (error) {
+        console.error('Mark notification read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark notification as read' };
+    }
+};
+
+export const markAllNotificationsAsRead = async () => {
+    try {
+        const response = await api.post('/auth/admin/notifications/read-all/');
+        return response.data;
+    } catch (error) {
+        console.error('Mark all notifications read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark all notifications as read' };
+    }
+};
+
+export const deleteNotification = async (notificationId) => {
+    try {
+        const response = await api.delete(`/auth/admin/notifications/${notificationId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete notification error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete notification' };
+    }
+};

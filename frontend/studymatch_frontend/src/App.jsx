@@ -12,7 +12,11 @@ import { ForgotPasswordVerification } from './components/pages/ForgotPasswordVer
 import { ResetPassword } from './components/pages/ResetPassword';
 import { NotFound } from './components/pages/NotFound';
 import { isAuthenticated } from './utils/api';
-import { AdminDashboard } from './components/pages/AdminDashboard';
+import { AdminDashboard } from './components/pages/admin/AdminDashboard';
+import { UserList } from './components/pages/admin/UserList';
+import { GuildManagement } from './components/pages/admin/GuildManagement';
+import { Analytics } from './components/pages/admin/Analytics';
+import { Notifications } from './components/pages/admin/Notification';
 import { isAdmin } from './utils/api';
 
 // Protected Route Component
@@ -39,6 +43,10 @@ function App() {
         <Route path="/forgot-password-verify" element={<ForgotPasswordVerification />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserList /></ProtectedRoute>} />
+        <Route path="/admin/guilds" element={<ProtectedRoute adminOnly><GuildManagement /></ProtectedRoute>} />
+        <Route path="/admin/analytics" element={<ProtectedRoute adminOnly><Analytics /></ProtectedRoute>} />
+        <Route path="/admin/notifications" element={<ProtectedRoute adminOnly><Notifications /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Dashboard /></Suspense></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Profile /></Suspense></ProtectedRoute>} />
         {/* 404 Not Found */}
