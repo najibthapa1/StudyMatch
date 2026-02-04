@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User, Profile, StudyGoal, Activity, Guild, Event, EventParticipant, UserSuspension, AdminNotification
+from .models import User, Profile, StudyGoal, Activity, Guild, Event, EventParticipant, UserSuspension, AdminNotification, ConnectionRequest
+from django.db import models
 from django.utils import timezone
 
 class RegisterSerializer(serializers.Serializer):
@@ -289,3 +290,95 @@ class GuildStatsSerializer(serializers.Serializer):
     name = serializers.CharField()
     members = serializers.IntegerField()
     events = serializers.IntegerField()
+
+# Discovery User Serializer
+class DiscoveryUserSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+    is_connected = serializers.SerializerMethodField()
+    connection_status = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ['user_id', 'profile', 'is_connected', 'connection_status']
+    
+    def get_profile(self, obj):
+        try:
+            profile = obj.profile
+            return {
+                'full_name': profile.full_name,
+                'bio': profile.bio,
+                'university_name': profile.university_name,
+                'course': profile.course,
+                'year': profile.year,
+                'interests': profile.interests,
+                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
+                'initials': profile.get_initials(),
+            }
+        except:
+            return None
+    
+    def get_is_connected(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        
+        from authentication.models import ConnectionRequest
+        # Check if connected (both directions)
+        return ConnectionRequest.objects.filter(
+            (models.Q(from_user=request.user, to_user=obj) | models.Q(from_user=obj, to_user=request.user)),
+            status='accepted'
+        ).exists()
+    
+    def get_connection_status(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return None
+        
+        from authentication.models import ConnectionRequest
+        # Check if there's a pending request
+        conn_request = ConnectionRequest.objects.filter(
+            models.Q(from_user=request.user, to_user=obj) | 
+            models.Q(from_user=obj, to_user=request.user)
+        ).first()
+        
+        if conn_request:
+            if conn_request.status == 'accepted':
+                return 'accepted'
+            elif conn_request.from_user == request.user:
+                return 'pending_sent'
+            else:
+                return 'pending_received'
+        return None
+
+
+# Connection Request Serializer
+class ConnectionRequestSerializer(serializers.ModelSerializer):
+    from_user_profile = serializers.SerializerMethodField()
+    to_user_profile = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ConnectionRequest
+        fields = ['request_id', 'from_user', 'to_user', 'from_user_profile', 'to_user_profile', 'status', 'created_at']
+        read_only_fields = ['request_id', 'created_at']
+    
+    def get_from_user_profile(self, obj):
+        try:
+            profile = obj.from_user.profile
+            return {
+                'full_name': profile.full_name,
+                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
+                'initials': profile.get_initials(),
+            }
+        except:
+            return None
+    
+    def get_to_user_profile(self, obj):
+        try:
+            profile = obj.to_user.profile
+            return {
+                'full_name': profile.full_name,
+                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
+                'initials': profile.get_initials(),
+            }
+        except:
+            return None
