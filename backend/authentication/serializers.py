@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, Profile, StudyGoal, Activity, Guild, Event, EventParticipant, UserSuspension, AdminNotification
+from django.utils import timezone
 
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)

@@ -231,6 +231,31 @@ class EventParticipant(models.Model):
     
     def __str__(self):
         return f"{self.user.email} - {self.event.title}"
+    
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            self.event.pre_joined_count = self.event.participants.count()
+            
+            # If 3 or more people pre-joined, auto-confirm the event
+            if self.event.pre_joined_count >= 3 and self.event.status == 'pending':
+                self.event.status = 'confirmed'
+                self.event.attendee_count = self.event.pre_joined_count
+                
+                # Mark all participants as confirmed
+                self.event.participants.all().update(is_confirmed=True)
+                
+                # Create admin notification
+                from authentication.models import AdminNotification
+                AdminNotification.objects.create(
+                    notification_type='event',
+                    title='Event Confirmed',
+                    description=f'{self.event.title} reached 3+ pre-joins and was auto-confirmed'
+                )
+            
+            self.event.save()
 
 
 # User Suspension Model
