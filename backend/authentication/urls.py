@@ -37,4 +37,11 @@ urlpatterns = [
     path('admin/notifications/<uuid:notification_id>/read/', views.admin_mark_notification_read, name='admin_mark_notification_read'),
     path('admin/notifications/read-all/', views.admin_mark_all_notifications_read, name='admin_mark_all_notifications_read'),
     path('admin/notifications/<uuid:notification_id>/delete/', views.admin_delete_notification, name='admin_delete_notification'),
+    path('discovery/users/', views.discovery_users, name='discovery_users'),
+    path('discovery/user/<uuid:user_id>/', views.discovery_user_detail, name='discovery_user_detail'),
+    path('connections/send/<uuid:user_id>/', views.send_connection_request, name='send_connection_request'),
+    path('connections/requests/', views.get_connection_requests, name='get_connection_requests'),
+    path('connections/accept/<uuid:request_id>/', views.accept_connection_request, name='accept_connection_request'),
+    path('connections/reject/<uuid:request_id>/', views.reject_connection_request, name='reject_connection_request'),
+
 ]

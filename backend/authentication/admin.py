@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Profile, EmailVerification, StudyGoal, Activity, PasswordReset, Guild, Event, EventParticipant, UserSuspension, AdminNotification
+from .models import User, Profile, EmailVerification, StudyGoal, Activity, PasswordReset, Guild, Event, EventParticipant, UserSuspension, AdminNotification, ConnectionRequest
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -52,6 +52,7 @@ class ActivityAdmin(admin.ModelAdmin):
     def user_email(self, obj):
         return obj.user.email
     user_email.short_description = 'Email'
+    
 @admin.register(PasswordReset)
 class PasswordResetAdmin(admin.ModelAdmin):
     list_display = ['user_email', 'code', 'is_used', 'expires_at', 'created_at']
@@ -70,3 +71,4 @@ admin.site.register(Event)
 admin.site.register(EventParticipant)
 admin.site.register(UserSuspension)
 admin.site.register(AdminNotification)
+admin.site.register(ConnectionRequest)
