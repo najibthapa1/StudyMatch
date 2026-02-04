@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from .permissions import IsAdminUser
-
+from django.db import models
 from .models import User, EmailVerification, Activity, StudyGoal, Profile, Guild, Event, EventParticipant, UserSuspension, AdminNotification, ConnectionRequest
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer, ActivitySerializer, StudyGoalSerializer, GuildSerializer, EventSerializer, UserSuspensionSerializer,AdminNotificationSerializer, AdminUserSerializer,UserGrowthSerializer, EventStatsSerializer, GuildStatsSerializer, DiscoveryUserSerializer, ConnectionRequestSerializer
 from .utils import generate_verification_code, send_verification_email
@@ -308,8 +308,14 @@ def upload_profile_picture(request):
 def get_user_stats(request):
     """Get user statistics"""
     try:
+        from authentication.models import ConnectionRequest
+        
+        connections_count = ConnectionRequest.objects.filter(
+            (models.Q(from_user=request.user) | models.Q(to_user=request.user)),
+            status='accepted'
+        ).count()
         stats = {
-            'connections': 0,
+            'connections': connections_count,
             'messages': 0,
             'match_rate': 0,
             'projects_completed': 0,

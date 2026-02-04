@@ -296,10 +296,11 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
     is_connected = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
-    
+    request_id = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['user_id', 'profile', 'is_connected', 'connection_status']
+        fields = ['user_id', 'profile', 'is_connected', 'connection_status', 'request_id']
     
     def get_profile(self, obj):
         try:
@@ -348,6 +349,22 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
                 return 'pending_sent'
             else:
                 return 'pending_received'
+        return None
+    
+    def get_request_id(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return None
+        
+        from authentication.models import ConnectionRequest
+        conn_request = ConnectionRequest.objects.filter(
+            from_user=obj,           #
+            to_user=request.user,    #
+            status='pending'
+        ).first()
+        
+        if conn_request:
+            return str(conn_request.request_id)
         return None
 
 

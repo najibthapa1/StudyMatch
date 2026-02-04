@@ -18,6 +18,8 @@ import { GuildManagement } from './components/pages/admin/GuildManagement';
 import { Analytics } from './components/pages/admin/Analytics';
 import { Notifications } from './components/pages/admin/Notification';
 import { isAdmin } from './utils/api';
+import Discovery from './components/pages/Discovery';
+
 
 // Protected Route Component
 function ProtectedRoute({ children, adminOnly = false  }) {
@@ -49,6 +51,7 @@ function App() {
         <Route path="/admin/notifications" element={<ProtectedRoute adminOnly><Notifications /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Dashboard /></Suspense></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Profile /></Suspense></ProtectedRoute>} />
+        <Route path="/connect" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Discovery /></Suspense></ProtectedRoute>} />
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
