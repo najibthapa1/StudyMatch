@@ -470,3 +470,66 @@ export const deleteNotification = async (notificationId) => {
         throw error.response?.data || { error: 'Failed to delete notification' };
     }
 };
+
+// Discovery APIs
+export const getDiscoveryUsers = async (params = {}) => {
+    try {
+        const queryParams = new URLSearchParams(params).toString();
+        const response = await api.get(`/auth/discovery/users/${queryParams ? '?' + queryParams : ''}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get discovery users error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch users' };
+    }
+};
+
+export const getUserDetail = async (userId) => {
+    try {
+        const response = await api.get(`/auth/discovery/user/${userId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get user detail error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch user details' };
+    }
+};
+
+// Connection Request APIs
+export const sendConnectionRequest = async (userId) => {
+    try {
+        const response = await api.post(`/auth/connections/send/${userId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Send connection request error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to send connection request' };
+    }
+};
+
+export const getConnectionRequests = async (type = 'all') => {
+    try {
+        const response = await api.get(`/auth/connections/requests/?type=${type}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get connection requests error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch connection requests' };
+    }
+};
+
+export const acceptConnectionRequest = async (requestId) => {
+    try {
+        const response = await api.post(`/auth/connections/accept/${requestId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Accept connection request error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to accept connection request' };
+    }
+};
+
+export const rejectConnectionRequest = async (requestId) => {
+    try {
+        const response = await api.post(`/auth/connections/reject/${requestId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Reject connection request error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to reject connection request' };
+    }
+};
