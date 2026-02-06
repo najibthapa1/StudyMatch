@@ -297,10 +297,11 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
     is_connected = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
     request_id = serializers.SerializerMethodField()
+    match_score = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['user_id', 'profile', 'is_connected', 'connection_status', 'request_id']
+        fields = ['user_id', 'profile', 'is_connected', 'connection_status', 'request_id','match_score']
     
     def get_profile(self, obj):
         try:
@@ -358,14 +359,32 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
         
         from authentication.models import ConnectionRequest
         conn_request = ConnectionRequest.objects.filter(
-            from_user=obj,           #
-            to_user=request.user,    #
+            from_user=obj,           
+            to_user=request.user,    
             status='pending'
         ).first()
         
         if conn_request:
             return str(conn_request.request_id)
         return None
+    
+    def get_match_score(self, obj):
+        """Calculate match score using the matching algorithm"""
+        request = self.context.get('request')
+        if not request or not request.user:
+            return 0.0
+        
+        try:
+            from authentication.views import calculate_match_score
+            
+            user_profile = request.user.profile
+            other_profile = obj.profile
+            
+            score = calculate_match_score(user_profile, other_profile)
+            return score
+        except Exception as e:
+            print(f"Error calculating match score: {e}")
+            return 0.0
 
 
 # Connection Request Serializer
