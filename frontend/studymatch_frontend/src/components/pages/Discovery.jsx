@@ -60,7 +60,20 @@ export default function Discovery() {
         
         const data = await getDiscoveryUsers(params);
         
-        setStudents(data.users);
+        // Debug: Log first student to check match_score
+        if (data.users.length > 0) {
+            console.log('Sample student data:', data.users[0]);
+            console.log('Match scores:', data.users.map(u => ({ name: u.profile?.full_name, score: u.match_score })));
+        }
+        
+        // Sort students by match score (highest first)
+        const sortedStudents = data.users.sort((a, b) => {
+            const scoreA = a.match_score || 0;
+            const scoreB = b.match_score || 0;
+            return scoreB - scoreA;
+        });
+        
+        setStudents(sortedStudents);
         setPagination(data.pagination);
         setFilters(data.filters);
         setLoading(false);
@@ -69,6 +82,15 @@ export default function Discovery() {
         setError(err.error || 'Failed to load students');
         setLoading(false);
         }
+    };
+
+    // Get match category and badge
+    const getMatchBadge = (score) => {
+        if (score >= 90) return { label: 'Excellent Match', emoji: '🔥', color: 'bg-red-100 text-red-700 border-red-200' };
+        if (score >= 75) return { label: 'Great Match', emoji: '⭐', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+        if (score >= 60) return { label: 'Good Match', emoji: '✓', color: 'bg-green-100 text-green-700 border-green-200' };
+        if (score >= 40) return { label: 'Fair Match', emoji: '', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+        return { label: 'Low Match', emoji: '', color: 'bg-gray-100 text-gray-600 border-gray-200' };
     };
 
     const handleClearFilters = () => {
@@ -295,25 +317,33 @@ export default function Discovery() {
                         <div className="min-w-0">
                             <h3 className="text-xl mb-1 truncate">{student.profile.full_name}</h3>
                             {student.is_connected && (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
                                 Connected
-                            </span>
+                                </span>
                             )}
                         </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                        {/* Match Score Badge - Show for ALL scores (debugging mode) */}
+                        {student.match_score !== undefined && student.match_score !== null && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${getMatchBadge(student.match_score).color}`}>
+                            {getMatchBadge(student.match_score).emoji && `${getMatchBadge(student.match_score).emoji} `}{student.match_score}%
+                            </span>
+                        )}
                         <button
-                        onClick={() => handleViewProfile(student)}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            onClick={() => handleViewProfile(student)}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
                         >
-                        <MoreVertical className="w-5 h-5 text-gray-600" />
+                            <MoreVertical className="w-5 h-5 text-gray-600" />
                         </button>
+                        </div>
                     </div>
 
                     {/* Student Info */}
                     <div className="mb-4">
                         <p className="text-gray-600 mb-1">
                         {student.profile.course || 'Course not specified'} 
-                        {student.profile.year && ` • ${student.profile.year}`}
+                        {student.profile.year && ` · ${student.profile.year}`}
                         </p>
                         <p className="text-sm text-gray-500">{student.profile.university_name}</p>
                     </div>
