@@ -2036,7 +2036,7 @@ def remove_connection(request, user_id):
         # Find the connection request (either direction)
         conn_request = ConnectionRequest.objects.filter(
             (models.Q(from_user=request.user, to_user=other_user) |
-             models.Q(from_user=other_user, to_user=request.user)),
+            models.Q(from_user=other_user, to_user=request.user)),
             status='accepted'
         ).first()
         
