@@ -7,6 +7,8 @@ import { Login } from './components/pages/Login';
 import { EmailVerification } from './components/pages/EmailVerification';
 const Dashboard = lazy(() => import('./components/pages/Dashboard'));
 const Profile = lazy(() => import('./components/pages/Profile'));
+const Connections = lazy(() => import('./components/pages/Connections'));
+const Discovery = lazy(() => import('./components/pages/Discovery'));
 import { ForgotPassword } from './components/pages/ForgotPassword';
 import { ForgotPasswordVerification } from './components/pages/ForgotPasswordVerification';
 import { ResetPassword } from './components/pages/ResetPassword';
@@ -18,7 +20,6 @@ import { GuildManagement } from './components/pages/admin/GuildManagement';
 import { Analytics } from './components/pages/admin/Analytics';
 import { Notifications } from './components/pages/admin/Notification';
 import { isAdmin } from './utils/api';
-import Discovery from './components/pages/Discovery';
 
 
 // Protected Route Component
@@ -52,6 +53,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Dashboard /></Suspense></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Profile /></Suspense></ProtectedRoute>} />
         <Route path="/connect" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Discovery /></Suspense></ProtectedRoute>} />
+        <Route path="/connections" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Connections /></Suspense></ProtectedRoute>} />
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>

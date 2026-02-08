@@ -533,3 +533,26 @@ export const rejectConnectionRequest = async (requestId) => {
         throw error.response?.data || { error: 'Failed to reject connection request' };
     }
 };
+
+// Get all connections (accepted connections)
+export const getConnections = async (params = {}) => {
+    try {
+        const queryParams = new URLSearchParams(params).toString();
+        const response = await api.get(`/auth/connections/${queryParams ? '?' + queryParams : ''}`);
+        return response.data;
+    } catch (error) {
+        console.error('Get connections error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch connections' };
+    }
+};
+
+// Remove a connection
+export const removeConnection = async (userId) => {
+    try {
+        const response = await api.delete(`/auth/connections/remove/${userId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Remove connection error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to remove connection' };
+    }
+};
