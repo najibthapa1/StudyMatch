@@ -1956,3 +1956,118 @@ def reject_connection_request(request, request_id):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+@api_view(['GET'])   
+@permission_classes([IsAuthenticated])
+def get_connections(request):
+    """Get all accepted connections for the current user"""
+    try:
+        search = request.GET.get('search', '')
+        
+        # Get all accepted connection requests where user is either sender or receiver
+        accepted_connections = ConnectionRequest.objects.filter(
+            (models.Q(from_user=request.user) | models.Q(to_user=request.user)),
+            status='accepted'
+        ).select_related('from_user__profile', 'to_user__profile')
+        
+        connections_data = []
+        for conn in accepted_connections:
+            # Determine which user is the "other" user
+            other_user = conn.to_user if conn.from_user == request.user else conn.from_user
+            
+            # Skip if other user is suspended or not active
+            if other_user.is_suspended or not other_user.is_active or not other_user.is_verified:
+                continue
+            
+            try:
+                profile = other_user.profile
+                
+                # Apply search filter
+                if search:
+                    if not (search.lower() in profile.full_name.lower() or 
+                        search.lower() in (profile.course or '').lower() or
+                        search.lower() in (profile.interests or '').lower()):
+                        continue
+                
+                # Get last activity time
+                last_activity = Activity.objects.filter(user=other_user).first()
+                last_active = last_activity.get_time_ago() if last_activity else 'No recent activity'
+                
+                connections_data.append({
+                    'user_id': str(other_user.user_id),
+                    'connection_id': str(conn.request_id),
+                    'profile': {
+                        'full_name': profile.full_name,
+                        'email': other_user.email,
+                        'bio': profile.bio or '',
+                        'university_name': profile.university_name,
+                        'course': profile.course or '',
+                        'year': profile.year or '',
+                        'interests': profile.interests or '',
+                        'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
+                        'initials': profile.get_initials(),
+                    },
+                    'connected_date': conn.updated_at.strftime('%b %d, %Y'),
+                    'last_active': last_active,
+                    'is_connected': True,
+                })
+            except Profile.DoesNotExist:
+                continue
+        
+        return Response({
+            'connections': connections_data,
+            'count': len(connections_data)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_connection(request, user_id):
+    """Remove a connection by changing status to rejected"""
+    try:
+        other_user = User.objects.get(user_id=user_id)
+        
+        # Find the connection request (either direction)
+        conn_request = ConnectionRequest.objects.filter(
+            (models.Q(from_user=request.user, to_user=other_user) |
+             models.Q(from_user=other_user, to_user=request.user)),
+            status='accepted'
+        ).first()
+        
+        if not conn_request:
+            return Response(
+                {'error': 'Connection not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Delete the connection request
+        conn_request.delete()
+        
+        # Create activity
+        Activity.objects.create(
+            user=request.user,
+            activity_type='connection',
+            action='Removed connection',
+            description=f'with {other_user.profile.full_name}'
+        )
+        
+        return Response({
+            'message': 'Connection removed successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'User not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -43,5 +43,6 @@ urlpatterns = [
     path('connections/requests/', views.get_connection_requests, name='get_connection_requests'),
     path('connections/accept/<uuid:request_id>/', views.accept_connection_request, name='accept_connection_request'),
     path('connections/reject/<uuid:request_id>/', views.reject_connection_request, name='reject_connection_request'),
-
+    path('connections/', views.get_connections, name='get_connections'),
+    path('connections/remove/<uuid:user_id>/', views.remove_connection, name='remove_connection'),
 ]
