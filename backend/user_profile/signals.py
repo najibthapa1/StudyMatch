@@ -1,11 +1,14 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Profile, Guild, AdminNotification
+from .models import Profile
 
 @receiver(post_save, sender=Profile)
 def create_guild_and_notification(sender, instance, created, **kwargs):
     """Auto-create guild when new profile is created and send admin notification"""
     if created:
+        from guild.models import Guild
+        from administration.models import AdminNotification
+
         # Create guild if doesn't exist
         guild, guild_created = Guild.objects.get_or_create(
             name=instance.university_name,
