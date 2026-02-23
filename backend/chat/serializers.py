@@ -70,3 +70,37 @@ class ConversationListSerializer(serializers.ModelSerializer):
         if request and request.user:
             return obj.unread_count_for(request.user)
         return 0
+    
+class ConversationDetailSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True)
+    participants = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = [
+            'conversation_id', 'participant_one', 'participant_two','participants', 'messages', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['participant_one', 'participant_two']
+
+    def get_participants(self, obj):
+        """Get both participants' information."""
+        return [
+            {
+                'user_id': str(obj.participant_one.user_id),
+                'name': obj.participant_one.get_full_name(),
+                'email': obj.participant_one.email,
+                'avatar': obj.participant_one.profile_picture.url if obj.participant_one.profile_picture else None
+            },
+            {
+                'user_id': str(obj.participant_two.user_id),
+                'name': obj.participant_two.get_full_name(),
+                'email': obj.participant_two.email,
+                'avatar': obj.participant_two.profile_picture.url if obj.participant_two.profile_picture else None
+            }
+        ]
+
+
+
+
+
+
