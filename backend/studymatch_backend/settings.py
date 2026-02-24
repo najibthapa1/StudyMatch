@@ -24,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-!5j4-zy-7@s(f3w+9p1*75&7wo0)j)beo%lgkh!8q9z_d-5*tl"
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -35,6 +35,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne"
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -55,7 +56,9 @@ INSTALLED_APPS = [
     'guild',              
     'connection',         
     'discovery',          
-    'administration'
+    'administration',
+    'channels',
+    'chat'
 ]
 
 MIDDLEWARE = [
@@ -87,7 +90,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "studymatch_backend.wsgi.application"
+ASGI_APPLICATION = 'studymatch_backend.asgi.application'
 
+# Channel Layers (Redis)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -217,13 +230,12 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'StudyMatch <noreply@studymatch.com>')
 
 # For development - print emails to console
-if DEBUG:
+USE_REAL_EMAIL = os.getenv('USE_REAL_EMAIL', 'False').lower() == 'true'
+if DEBUG and not USE_REAL_EMAIL:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# For demo - uses outlook email
-# if DEBUG:
-#     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#     print("📧 EMAIL MODE: Real Outlook (emails will be sent)")
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    
 
 # Cloudinary Configuration
 CLOUDINARY_STORAGE = {
