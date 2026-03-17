@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from authentication.models import User
+from cloudinary_storage.storage import MediaCloudinaryStorage
+
 import uuid
     
 # Profile table 
@@ -14,7 +16,7 @@ class Profile(models.Model):
     year = models.CharField(max_length=50, blank=True)
     interests = models.TextField(blank=True)  
     projects = models.TextField(blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', storage=MediaCloudinaryStorage(),blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
