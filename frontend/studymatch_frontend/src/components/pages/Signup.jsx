@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { ChevronRight, ChevronLeft, Upload, Eye, EyeOff } from 'lucide-react';
-import { registerUser } from '../../utils/api';
+import { ChevronRight, ChevronLeft, Upload, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { registerUser, checkEmailAvailability } from '../../utils/api';
 
 export function Signup() {
   const navigate = useNavigate();
@@ -14,12 +14,15 @@ export function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [emailError, setEmailError] = useState('');
+
+  const pictureInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    university: '',
+    university: 'Islington College',
     major: '',
     year: '',
     interests: '',
@@ -27,13 +30,79 @@ export function Signup() {
     projects: '',
   });
 
+  const [pictureFile, setPictureFile] = useState(null);
+  const [picturePreview, setPicturePreview] = useState(null);
+
   const totalSteps = 3;
 
-  const handleNext = () => {
+  // Real-time email domain validation only — no API call here
+  const handleEmailChange = (value) => {
+    setFormData(prev => ({ ...prev, email: value }));
+    setError('');
+
+    if (value.includes('@')) {
+      if (!value.endsWith('@islingtoncollege.edu.np')) {
+        setEmailError('Only @islingtoncollege.edu.np emails are allowed');
+      } else {
+        setEmailError('');
+      }
+    } else {
+      setEmailError('');
+    }
+  };
+
+  // Step 1: validate fields, then check email availability via dedicated endpoint
+  const handleStep1Next = async () => {
+    // Basic field validation
+    if (!formData.name.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+    if (!formData.email.endsWith('@islingtoncollege.edu.np')) {
+      setError('Only @islingtoncollege.edu.np emails are allowed');
+      return;
+    }
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    // Check email availability without creating the user
+    setLoading(true);
+    try {
+      const result = await checkEmailAvailability(formData.email);
+      if (!result.available) {
+        setError('This email is already registered. Please login instead.');
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      // If the endpoint fails for some reason, let the user proceed
+      // The final registration will catch duplicates anyway
+      console.warn('Email check failed, proceeding:', err);
+    }
+    setLoading(false);
+
+    setError('');
+    setCurrentStep(2);
+  };
+
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      await handleStep1Next();
+      return;
+    }
+
     if (currentStep < totalSteps) {
+      setError('');
       setCurrentStep(currentStep + 1);
     } else {
-      handleSubmit();
+      // Step 3 — final submission
+      await handleSubmit();
     }
   };
 
@@ -45,35 +114,66 @@ export function Signup() {
   };
 
   const updateFormData = (field, value) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
+  };
+
+  const handlePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Profile picture must be under 5MB');
+      return;
+    }
+
+    setPictureFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPicturePreview(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
 
-    // Call API
-    const result = await registerUser(formData);
+    // Build FormData so we can include the profile picture in one request
+    const payload = new FormData();
+    payload.append('name', formData.name);
+    payload.append('email', formData.email);
+    payload.append('password', formData.password);
+    payload.append('university', formData.university);
+    payload.append('major', formData.major);
+    payload.append('year', formData.year);
+    payload.append('interests', formData.interests);
+    payload.append('bio', formData.bio);
+    payload.append('projects', formData.projects);
+    if (pictureFile) {
+      payload.append('profile_picture', pictureFile);
+    }
+
+    const result = await registerUser(payload);
 
     if (result.success) {
-      // Registration successful - go to verification page
-      navigate('/verify-email', { 
-        state: { email: formData.email } 
-      });
+      navigate('/verify-email', { state: { email: formData.email } });
     } else {
-      // Show error
-      if (typeof result.error === 'object') {
-        // Display field errors
-        const errorMessages = Object.entries(result.error)
-          .map(([field, messages]) => {
-            const msg = Array.isArray(messages) ? messages[0] : messages;
-            return `${field}: ${msg}`;
-          })
-          .join('\n');
-        setError(errorMessages);
+      const errData = result.error;
+      if (errData && typeof errData === 'object') {
+        // Pick the first field error and show it cleanly
+        const firstKey = Object.keys(errData)[0];
+        if (firstKey) {
+          const msg = Array.isArray(errData[firstKey])
+            ? errData[firstKey][0]
+            : errData[firstKey];
+          setError(String(msg));
+        } else {
+          setError('Registration failed. Please try again.');
+        }
+      } else if (typeof errData === 'string') {
+        setError(errData);
       } else {
-        setError(result.error.message || 'Registration failed');
+        setError('Registration failed. Please try again.');
       }
     }
 
@@ -99,6 +199,7 @@ export function Signup() {
         className="w-full max-w-2xl"
       >
         <div className="bg-white rounded-3xl p-8 lg:p-12 shadow-xl border border-gray-200">
+
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
@@ -106,12 +207,18 @@ export function Signup() {
                 <div key={step} className="flex items-center flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      step <= currentStep
+                      step < currentStep
                         ? 'bg-black text-white'
+                        : step === currentStep
+                        ? 'bg-black text-white ring-4 ring-gray-200'
                         : 'bg-gray-200 text-gray-500'
                     }`}
                   >
-                    {step}
+                    {step < currentStep ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      step
+                    )}
                   </div>
                   {step < 3 && (
                     <div
@@ -123,7 +230,7 @@ export function Signup() {
                 </div>
               ))}
             </div>
-            <div className="text-center text-sm text-gray-600">
+            <div className="text-center text-sm text-gray-600 mt-2">
               Step {currentStep} of {totalSteps}
             </div>
           </div>
@@ -131,12 +238,14 @@ export function Signup() {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 whitespace-pre-line">{error}</p>
+              <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {/* Step Content */}
           <AnimatePresence mode="wait">
+
+            {/* ── Step 1: Basic Info ── */}
             {currentStep === 1 && (
               <motion.div
                 key="step1"
@@ -159,7 +268,6 @@ export function Signup() {
                     value={formData.name}
                     onChange={(e) => updateFormData('name', e.target.value)}
                     className="h-12"
-                    required
                   />
                 </div>
 
@@ -170,11 +278,18 @@ export function Signup() {
                     type="email"
                     placeholder="you@islingtoncollege.edu.np"
                     value={formData.email}
-                    onChange={(e) => updateFormData('email', e.target.value)}
-                    className="h-12"
-                    required
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    className={`h-12 ${emailError ? 'border-red-400 focus:ring-red-400' : ''}`}
                   />
-                  <p className="text-xs text-gray-500">Only @islingtoncollege.edu.np emails are allowed</p>
+                  {emailError ? (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <span>⚠</span> {emailError}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      Only @islingtoncollege.edu.np emails are allowed
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -187,7 +302,6 @@ export function Signup() {
                       value={formData.password}
                       onChange={(e) => updateFormData('password', e.target.value)}
                       className="h-12 pr-10"
-                      required
                     />
                     <button
                       type="button"
@@ -202,6 +316,7 @@ export function Signup() {
               </motion.div>
             )}
 
+            {/* ── Step 2: Academic Info ── */}
             {currentStep === 2 && (
               <motion.div
                 key="step2"
@@ -218,14 +333,14 @@ export function Signup() {
 
                 <div className="space-y-2">
                   <Label htmlFor="university">University / College</Label>
-                  <Input
+                  <select
                     id="university"
-                    placeholder="e.g., Islington College"
                     value={formData.university}
                     onChange={(e) => updateFormData('university', e.target.value)}
-                    className="h-12"
-                    required
-                  />
+                    className="w-full h-12 px-3 rounded-md border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="Islington College">Islington College</option>
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -241,13 +356,18 @@ export function Signup() {
 
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
-                  <Input
+                  <select
                     id="year"
-                    placeholder="Junior, Senior, etc."
                     value={formData.year}
                     onChange={(e) => updateFormData('year', e.target.value)}
-                    className="h-12"
-                  />
+                    className="w-full h-12 px-3 rounded-md border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">Select your year</option>
+                    <option value="First Year">First Year</option>
+                    <option value="Second Year">Second Year</option>
+                    <option value="Third Year">Third Year</option>
+                    <option value="Fourth Year">Fourth Year</option>
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -275,6 +395,7 @@ export function Signup() {
               </motion.div>
             )}
 
+            {/* ── Step 3: Profile Picture & Projects ── */}
             {currentStep === 3 && (
               <motion.div
                 key="step3"
@@ -291,10 +412,30 @@ export function Signup() {
 
                 <div className="space-y-2">
                   <Label>Profile Picture (Optional)</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-600 mb-2">You can upload later</p>
+                  <div
+                    onClick={() => pictureInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                  >
+                    {picturePreview ? (
+                      <img
+                        src={picturePreview}
+                        alt="Preview"
+                        className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
+                      />
+                    ) : (
+                      <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    )}
+                    <p className="text-gray-600 mb-2">
+                      {picturePreview ? 'Click to change picture' : 'Click to upload a profile picture'}
+                    </p>
                     <p className="text-sm text-gray-400">PNG, JPG up to 5MB</p>
+                    <input
+                      ref={pictureInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePictureChange}
+                      className="hidden"
+                    />
                   </div>
                 </div>
 
@@ -323,12 +464,18 @@ export function Signup() {
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <Button 
-              onClick={handleNext} 
+            <Button
+              onClick={handleNext}
               className="h-12 bg-black hover:bg-gray-800"
-              disabled={loading}
+              disabled={loading || !!emailError}
             >
-              {loading ? 'Processing...' : (currentStep === totalSteps ? 'Complete' : 'Next')}
+              {loading
+                ? currentStep === 1
+                  ? 'Checking...'
+                  : 'Submitting...'
+                : currentStep === totalSteps
+                ? 'Complete'
+                : 'Next'}
               {!loading && <ChevronRight className="w-4 h-4 ml-2" />}
             </Button>
           </div>
