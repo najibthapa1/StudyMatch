@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://192.168.31.227:8000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -23,7 +23,11 @@ api.interceptors.request.use(
 // Register new user
 export const registerUser = async (userData) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/register/`, userData);
+        const response = await axios.post(`${API_BASE_URL}/auth/register/`, userData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',  
+            }
+        });
         return { success: true, data: response.data };
     } catch (error) {
         console.error('Registration error:', error.response?.data);
@@ -31,6 +35,15 @@ export const registerUser = async (userData) => {
             success: false, 
             error: error.response?.data || 'Registration failed' 
         };
+    }
+};
+export const checkEmailAvailability = async (email) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/auth/check-email/`, { email });
+        return response.data; // { available: true/false }
+    } catch (error) {
+        console.error('Email check error:', error.response?.data);
+        return { available: true };
     }
 };
 
@@ -605,5 +618,103 @@ export const leaveEvent = async (eventId) => {
     } catch (error) {
         console.error('Leave event error:', error.response?.data);
         throw error.response?.data || { error: 'Failed to leave event' };
+    }
+};
+
+// Get all conversations for current user
+export const getConversations = async () => {
+    try {
+        const response = await api.get('/conversations/');
+        return response.data;
+    } catch (error) {
+        console.error('Get conversations error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch conversations' };
+    }
+};
+
+// Create or get existing conversation with a user
+export const createOrGetConversation = async (userId) => {
+    try {
+        const response = await api.post('/conversations/create/', { user_id: userId });
+        return response.data;
+    } catch (error) {
+        console.error('Create conversation error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to create conversation' };
+    }
+};
+
+// Get all messages in a conversation
+export const getConversationMessages = async (conversationId) => {
+    try {
+        const response = await api.get(`/conversations/${conversationId}/messages/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get messages error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch messages' };
+    }
+};
+
+// Send a message (with optional file attachment)
+export const sendMessage = async (conversationId, formData) => {
+    try {
+        const response = await api.post(
+            `/conversations/${conversationId}/messages/send/`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Send message error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to send message' };
+    }
+};
+
+// Delete a message
+export const deleteMessage = async (messageId) => {
+    try {
+        const response = await api.delete(`/messages/${messageId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete message error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete message' };
+    }
+};
+
+// Mark messages as read
+export const markMessagesAsRead = async (conversationId) => {
+    try {
+        const response = await api.post(`/conversations/${conversationId}/messages/read/`);
+        return response.data;
+    } catch (error) {
+        console.error('Mark messages read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark messages as read' };
+    }
+};
+
+// Search messages in a conversation
+export const searchMessages = async (conversationId, query) => {
+    try {
+        const response = await api.get(
+            `/conversations/${conversationId}/messages/search/?q=${encodeURIComponent(query)}`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Search messages error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to search messages' };
+    }
+};
+
+// Get a specific conversation details
+export const getConversation = async (conversationId) => {
+    try {
+        const response = await api.get(`/conversations/${conversationId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get conversation error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch conversation' };
     }
 };
