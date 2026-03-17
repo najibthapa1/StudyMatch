@@ -35,20 +35,21 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne"
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "cloudinary_storage",
     "django.contrib.staticfiles",
         # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'cloudinary_storage',
     'cloudinary',
+    'drf_spectacular',
     
     # Local apps
     'authentication',
@@ -58,7 +59,7 @@ INSTALLED_APPS = [
     'discovery',          
     'administration',
     'channels',
-    'chat'
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -159,9 +160,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -176,6 +174,23 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'StudyMatch API',
+    'DESCRIPTION': 'API documentation for StudyMatch',
+    'VERSION': '1.0.0',
+    'SECURITY': [{'BearerAuth': []}],
+    'COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
 }
 
 # Simple JWT Configuration
@@ -204,6 +219,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
+    "http://192.168.31.227:3000",   
+    "http://192.168.31.227:5173"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -229,12 +246,12 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'StudyMatch <noreply@studymatch.com>')
 
-# For development - print emails to console
+
 USE_REAL_EMAIL = os.getenv('USE_REAL_EMAIL', 'False').lower() == 'true'
-if DEBUG and not USE_REAL_EMAIL:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
+if USE_REAL_EMAIL:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     
 
 # Cloudinary Configuration
@@ -246,7 +263,7 @@ CLOUDINARY_STORAGE = {
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-# Frontend URL (for email links)
+# Frontend URL 
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 
 # OTP Settings
@@ -255,5 +272,4 @@ OTP_EXPIRY_MINUTES = 10
 # Allowed College Email Domains 
 ALLOWED_EMAIL_DOMAINS = [
     'islingtoncollege.edu.np',
-    # Add more college domains as needed
 ]
