@@ -9,6 +9,7 @@ def generate_verification_code():
 
 def send_verification_email(user_email, code):
     """Send verification code to user's email"""
+    mins = getattr(settings, 'OTP_EXPIRY_MINUTES', 10)
     subject = 'Verify Your StudyMatch Account'
     message = f'''
 Hello,
@@ -17,7 +18,7 @@ Thank you for registering with StudyMatch!
 
 Your verification code is: {code}
 
-This code will expire in 15 minutes.
+This code will expire in {mins} minutes.
 
 If you didn't create this account, please ignore this email.
 

@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from django.contrib.auth import authenticate
 from django.utils import timezone
@@ -10,9 +11,10 @@ from .models import User, EmailVerification
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, VerifyEmailSerializer
 from .utils import generate_verification_code, send_verification_email
 from user_profile.models import Profile 
+from django.conf import settings as django_settings
+OTP_MINUTES = getattr(django_settings, 'OTP_EXPIRY_MINUTES', 10)
 
-
-# Generate JWT tokens for userß
+# Generate JWT tokens for user
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -20,7 +22,7 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
-
+@extend_schema(request=RegisterSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny]) 
 def register(request):
@@ -34,9 +36,13 @@ def register(request):
         # Create user and profile
         user = serializer.save()
         
+        if 'profile_picture' in request.FILES:
+            user.profile.profile_picture = request.FILES['profile_picture']
+            user.profile.save()
+            
         # Generate verification code
         code = generate_verification_code()
-        expires_at = timezone.now() + timedelta(minutes=15)
+        expires_at = timezone.now() + timedelta(minutes=OTP_MINUTES)
         
         # Save verification code
         EmailVerification.objects.create(
@@ -57,8 +63,24 @@ def register(request):
     
     # If validation failed, return errors
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_email(request):
+    """Check if an email is already registered without creating any user."""
+    email = request.data.get('email', '').strip().lower()
+ 
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    from django.conf import settings
+    allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['islingtoncollege.edu.np'])
+    if not any(email.endswith(f'@{domain}') for domain in allowed_domains):
+        return Response({'available': False, 'error': 'Email domain not allowed'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    exists = User.objects.filter(email=email).exists()
+    return Response({'available': not exists}, status=status.HTTP_200_OK)
 
-
+@extend_schema(request=VerifyEmailSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_email(request):
@@ -138,7 +160,7 @@ def resend_verification(request):
     
     # Generate new code
     code = generate_verification_code()
-    expires_at = timezone.now() + timedelta(minutes=15)
+    expires_at = timezone.now() + timedelta(minutes=OTP_MINUTES)
     
     # Save new code
     EmailVerification.objects.create(
@@ -154,7 +176,7 @@ def resend_verification(request):
         'message': 'Verification code sent successfully'
     }, status=status.HTTP_200_OK)
 
-
+@extend_schema(request=LoginSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
@@ -239,7 +261,7 @@ def forgot_password(request):
         # Generate reset code
         from .models import PasswordReset
         code = generate_verification_code()
-        expires_at = timezone.now() + timedelta(minutes=15)
+        expires_at = timezone.now() + timedelta(minutes=OTP_MINUTES)
         
         # Save reset code
         PasswordReset.objects.create(
@@ -260,7 +282,7 @@ You requested to reset your password for StudyMatch.
 
 Your password reset code is: {code}
 
-This code will expire in 15 minutes.
+This code will expire in {getattr(django_settings, 'OTP_EXPIRY_MINUTES', 10)} minutes.
 
 If you didn't request this, please ignore this email.
 

@@ -3,6 +3,7 @@ from .models import User, EmailVerification, PasswordReset
 from user_profile.models import Profile
 from django.db import models
 from django.utils import timezone
+from django.db import transaction
 
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
@@ -14,6 +15,8 @@ class RegisterSerializer(serializers.Serializer):
     interests = serializers.CharField(required=False, allow_blank=True)
     bio = serializers.CharField(required=False, allow_blank=True)
     projects = serializers.CharField(required=False, allow_blank=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
 
     def validate_email(self, value):
         # Check email domain
@@ -35,24 +38,26 @@ class RegisterSerializer(serializers.Serializer):
         interests = validated_data.pop('interests', '')
         bio = validated_data.pop('bio', '')
         projects = validated_data.pop('projects', '')
+
+        with transaction.atomic():
         
-        # Create user
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password']
-        )
-        
-        # Create profile
-        Profile.objects.create(
-            user=user,
-            full_name=name,
-            university_name=university,
-            course=major,
-            year=year,
-            interests=interests,
-            bio=bio,
-            projects=projects
-        )
+            # Create user
+            user = User.objects.create_user(
+                email=validated_data['email'],
+                password=validated_data['password']
+            )
+            
+            # Create profile
+            Profile.objects.create(
+                user=user,
+                full_name=name,
+                university_name=university,
+                course=major,
+                year=year,
+                interests=interests,
+                bio=bio,
+                projects=projects
+            )
         
         return user
 
