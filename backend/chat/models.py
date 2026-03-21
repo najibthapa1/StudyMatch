@@ -115,7 +115,7 @@ class TypingIndicator(models.Model):
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name='typing_indicators'
     )
-    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_typing = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -151,7 +151,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _check_participant(self):
-        from authentication.models import Conversation
+        from chat.models import Conversation
 
         return Conversation.objects.filter(
             conversation_id=self.conversation_id
@@ -162,7 +162,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _save_message(self, content):
         """Save message to database ."""
-        from authentication.models import Conversation, Message
+        from chat.models import Conversation, Message
 
         conversation = Conversation.objects.get(conversation_id=self.conversation_id)
         message = Message.objects.create(
@@ -180,7 +180,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _mark_messages_read(self):
         """Auto-mark messages as read on connection."""
-        from authentication.models import Message
+        from chat.models import Message
 
         Message.objects.filter(
             conversation_id=self.conversation_id,
