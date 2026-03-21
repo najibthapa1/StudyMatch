@@ -96,11 +96,8 @@ ASGI_APPLICATION = 'studymatch_backend.asgi.application'
 # Channel Layers (Redis)
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
-        },
-    },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
 }
 
 # Database
@@ -219,8 +216,17 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
+    "http://100.64.218.39:3000",
+    "http://100.64.218.39:5173",
     "http://192.168.31.227:3000",   
-    "http://192.168.31.227:5173"
+    "http://192.168.31.227:5173",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://192.168.31.227:5173",
+    "http://100.64.218.39:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
