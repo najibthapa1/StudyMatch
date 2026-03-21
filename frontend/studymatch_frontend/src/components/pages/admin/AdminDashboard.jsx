@@ -95,13 +95,11 @@ export function AdminDashboard() {
         return `${change > 0 ? '+' : ''}${change.toFixed(0)}%`;
     };
 
-    // Prepare stats cards with real data
     const statsCards = [
         { 
         label: 'Total Users', 
         value: stats?.total_users || 0, 
         icon: Users, 
-        change: '+12%', 
         iconBg: 'bg-blue-600',
         changeColor: 'text-green-400'
         },
@@ -109,23 +107,13 @@ export function AdminDashboard() {
         label: 'Verified Users', 
         value: stats?.verified_users || 0, 
         icon: UserCheck, 
-        change: '+8%',
         iconBg: 'bg-green-600',
         changeColor: 'text-green-400'
-        },
-        { 
-        label: 'Unverified Users', 
-        value: stats?.unverified_users || 0, 
-        icon: UserX, 
-        change: stats?.unverified_users > 0 ? `${stats.unverified_users} pending` : '0',
-        iconBg: 'bg-orange-600',
-        changeColor: stats?.unverified_users > 5 ? 'text-orange-400' : 'text-green-400'
         },
         { 
         label: 'Total Profiles', 
         value: stats?.total_profiles || 0, 
         icon: TrendingUp, 
-        change: '+15%',
         iconBg: 'bg-purple-600',
         changeColor: 'text-green-400'
         },
@@ -133,7 +121,6 @@ export function AdminDashboard() {
         label: 'New Users (7d)', 
         value: stats?.recent_signups?.length || 0, 
         icon: UserPlus, 
-        change: '+18%',
         iconBg: 'bg-pink-600',
         changeColor: 'text-green-400'
         },
