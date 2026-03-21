@@ -34,6 +34,16 @@ export const registerUser = async (userData) => {
     }
 };
 
+export const checkEmailAvailability = async (email) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/auth/check-email/`, { email });
+        return response.data; // { available: true/false }
+    } catch (error) {
+        console.error('Email check error:', error.response?.data);
+        return { available: true };
+    }
+};
+
 // Verify email with code
 export const verifyEmail = async (email, code) => {
     try {

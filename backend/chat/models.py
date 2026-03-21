@@ -3,6 +3,8 @@ from authentication.models import User
 import uuid
 from django.utils import timezone
 from django.db.models import Q, F
+from cloudinary_storage.storage import RawMediaCloudinaryStorage
+
 
 # Conversation Model 
 class Conversation(models.Model):
@@ -60,10 +62,10 @@ class Message(models.Model):
     )
     content = models.TextField()
     file_attachment = models.FileField(
-        upload_to='message_attachments/', blank=True, null=True
+        upload_to='message_attachments/', storage=RawMediaCloudinaryStorage(), blank=True, null=True
     )
     file_name = models.CharField(max_length=255, blank=True)
-    file_type = models.CharField(max_length=50, blank=True)
+    file_type = models.CharField(max_length=255, blank=True)
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
