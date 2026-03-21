@@ -607,3 +607,72 @@ export const leaveEvent = async (eventId) => {
         throw error.response?.data || { error: 'Failed to leave event' };
     }
 };
+
+
+export const getConversations = async () => {
+    try {
+        const response = await api.get('/chat/conversations/');
+        return response.data;
+    } catch (error) {
+        console.error('Get conversations error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch conversations' };
+    }
+};
+
+export const createOrGetConversation = async (userId) => {
+    try {
+        const response = await api.post('/chat/conversations/create/', { user_id: userId });
+        return response.data;
+    } catch (error) {
+        console.error('Create conversation error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to create conversation' };
+    }
+};
+
+export const getConversationMessages = async (conversationId) => {
+    try {
+        const response = await api.get(`/chat/conversations/${conversationId}/messages/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get messages error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch messages' };
+    }
+};
+
+export const sendMessage = async (conversationId, formData) => {
+    try {
+        const response = await api.post(
+            `/chat/conversations/${conversationId}/messages/send/`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Send message error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to send message' };
+    }
+};
+
+export const deleteMessage = async (messageId) => {
+    try {
+        const response = await api.delete(`/chat/messages/${messageId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete message error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete message' };
+    }
+};
+
+export const markMessagesAsRead = async (conversationId) => {
+    try {
+        const response = await api.post(`/chat/conversations/${conversationId}/messages/read/`);
+        return response.data;
+    } catch (error) {
+        console.error('Mark messages read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark messages as read' };
+    }
+};
