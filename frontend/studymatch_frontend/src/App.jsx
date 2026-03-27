@@ -10,6 +10,7 @@ const Profile = lazy(() => import('./components/pages/Profile'));
 const Connections = lazy(() => import('./components/pages/Connections'));
 const Discovery = lazy(() => import('./components/pages/Discovery'));
 const Chat = lazy(() => import('./components/pages/Chat'));
+const Guild = lazy(() => import('./components/pages/Guild'));
 import { ForgotPassword } from './components/pages/ForgotPassword';
 import { ForgotPasswordVerification } from './components/pages/ForgotPasswordVerification';
 import { ResetPassword } from './components/pages/ResetPassword';
@@ -57,6 +58,7 @@ function App() {
         <Route path="/connections" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Connections /></Suspense></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Chat /> </Suspense></ProtectedRoute>} />
         <Route path="/chat/:conversationId" element={<ProtectedRoute> <Suspense fallback={<LoadingPage/>}><Chat /></Suspense></ProtectedRoute>} />
+        <Route path="/guild" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Guild /></Suspense></ProtectedRoute>} />
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
