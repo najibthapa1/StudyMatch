@@ -578,46 +578,6 @@ export const getGuildDetail = async (guildId) => {
     }
 };
 
-export const getGuildEvents = async (guildId) => {
-    try {
-        const response = await api.get(`/guilds/${guildId}/events/`);
-        return response.data;
-    } catch (error) {
-        console.error('Get guild events error:', error.response?.data);
-        throw error.response?.data || { error: 'Failed to fetch guild events' };
-    }
-};
-
-export const createEvent = async (guildId, eventData) => {
-    try {
-        const response = await api.post(`/guilds/${guildId}/events/create/`, eventData);
-        return response.data;
-    } catch (error) {
-        console.error('Create event error:', error.response?.data);
-        throw error.response?.data || { error: 'Failed to create event' };
-    }
-};
-
-export const joinEvent = async (eventId) => {
-    try {
-        const response = await api.post(`/guilds/events/${eventId}/join/`);
-        return response.data;
-    } catch (error) {
-        console.error('Join event error:', error.response?.data);
-        throw error.response?.data || { error: 'Failed to join event' };
-    }
-};
-
-export const leaveEvent = async (eventId) => {
-    try {
-        const response = await api.post(`/guilds/events/${eventId}/leave/`);
-        return response.data;
-    } catch (error) {
-        console.error('Leave event error:', error.response?.data);
-        throw error.response?.data || { error: 'Failed to leave event' };
-    }
-};
-
 
 export const getConversations = async () => {
     try {
@@ -684,5 +644,121 @@ export const markMessagesAsRead = async (conversationId) => {
     } catch (error) {
         console.error('Mark messages read error:', error.response?.data);
         throw error.response?.data || { error: 'Failed to mark messages as read' };
+    }
+};
+
+
+// Get current user's guild
+export const getMyGuild = async () => {
+    try {
+        const response = await api.get('/guilds/my-guild/');
+        return response.data;
+    } catch (error) {
+        console.error('Get my guild error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch guild' };
+    }
+};
+
+// Get events for a guild
+export const getGuildEvents = async (guildId) => {
+    try {
+        const response = await api.get(`/guilds/${guildId}/events/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get guild events error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch events' };
+    }
+};
+
+// Create event in a guild
+export const createEvent = async (guildId, eventData) => {
+    try {
+        const response = await api.post(`/guilds/${guildId}/events/create/`, eventData);
+        return response.data;
+    } catch (error) {
+        console.error('Create event error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to create event' };
+    }
+};
+
+// Join an event
+export const joinEvent = async (eventId) => {
+    try {
+        const response = await api.post(`/guilds/events/${eventId}/join/`);
+        return response.data;
+    } catch (error) {
+        console.error('Join event error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to join event' };
+    }
+};
+
+// Leave an event
+export const leaveEvent = async (eventId) => {
+    try {
+        const response = await api.post(`/guilds/events/${eventId}/leave/`);
+        return response.data;
+    } catch (error) {
+        console.error('Leave event error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to leave event' };
+    }
+};
+
+// Delete an event (creator only)
+export const deleteEvent = async (eventId) => {
+    try {
+        const response = await api.delete(`/guilds/events/${eventId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete event error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete event' };
+    }
+};
+
+// Get events I've joined
+export const getMyEvents = async () => {
+    try {
+        const response = await api.get('/guilds/events/my-events/');
+        return response.data;
+    } catch (error) {
+        console.error('Get my events error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch my events' };
+    }
+};
+
+
+// Upload photo to a past event 
+export const uploadEventPhoto = async (eventId, formData) => {
+    try {
+        const response = await api.post(
+            `/guilds/events/${eventId}/photos/upload/`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Upload event photo error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to upload photo' };
+    }
+};
+
+// Get all photos for an event
+export const getEventPhotos = async (eventId) => {
+    try {
+        const response = await api.get(`/guilds/events/${eventId}/photos/`);
+        return response.data;
+    } catch (error) {
+        console.error('Get event photos error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch photos' };
+    }
+};
+
+// Delete your own photo
+export const deleteEventPhoto = async (photoId) => {
+    try {
+        const response = await api.delete(`/guilds/photos/${photoId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete event photo error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete photo' };
     }
 };
