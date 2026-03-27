@@ -1,5 +1,6 @@
 from django.db import models
 from authentication.models import User
+from cloudinary_storage.storage import MediaCloudinaryStorage
 import uuid
         
 # Guild Model
@@ -100,3 +101,17 @@ class EventParticipant(models.Model):
             
             self.event.save()
 
+class EventPhoto(models.Model):
+    """Photos uploaded by participants after an event is done."""
+    photo_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='photos')
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_photos')
+    photo = models.ImageField(upload_to='event_photos/',storage=MediaCloudinaryStorage(), blank=False, null=False)
+    caption = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    class Meta:
+        ordering = ['-created_at']
+ 
+    def __str__(self):
+        return f"Photo by {self.uploaded_by.email} for {self.event.title}"
