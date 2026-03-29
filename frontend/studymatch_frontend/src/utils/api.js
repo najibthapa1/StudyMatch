@@ -762,3 +762,13 @@ export const deleteEventPhoto = async (photoId) => {
         throw error.response?.data || { error: 'Failed to delete photo' };
     }
 };
+
+export const updateEvent = async (eventId, eventData) => {
+    try {
+        const response = await api.put(`/guilds/events/${eventId}/update/`, eventData);
+        return response.data;
+    } catch (error) {
+        console.error('Update event error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to update event' };
+    }
+};
