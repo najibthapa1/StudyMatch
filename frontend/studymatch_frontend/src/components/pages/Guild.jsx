@@ -3,20 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar, MapPin, Clock, Users, CheckCircle, Plus, X,
     AlertCircle, Building2, Loader2, Trash2, ChevronRight,
-    Award, UserCheck, ImagePlus, Camera, ZoomIn, Download,
-    CalendarX, Image
+    Award, UserCheck, ImagePlus, Camera, ZoomIn,
+    CalendarX, Image, Edit2
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Navbar } from '../Navbar';
-
-// ─── API helpers (add these to your api.js too) ───────────────────────────
 import {
     getMyGuild,
     getGuildEvents,
     createEvent,
+    updateEvent,
     joinEvent,
     leaveEvent,
     deleteEvent,
@@ -27,14 +26,16 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
-    { value: 'workshop',    label: 'Workshop',    color: 'bg-blue-100 text-blue-700',   gradient: 'from-blue-500 to-blue-600' },
-    { value: 'study_group', label: 'Study Group', color: 'bg-green-100 text-green-700', gradient: 'from-green-500 to-teal-600' },
-    { value: 'competition', label: 'Competition', color: 'bg-red-100 text-red-700',     gradient: 'from-red-500 to-rose-600' },
-    { value: 'networking',  label: 'Networking',  color: 'bg-purple-100 text-purple-700', gradient: 'from-purple-500 to-violet-600' },
-    { value: 'symposium',   label: 'Symposium',   color: 'bg-orange-100 text-orange-700', gradient: 'from-orange-500 to-amber-600' },
+    { value: 'workshop',    label: 'Workshop',    color: 'bg-blue-50 text-blue-800',    gradient: 'from-slate-600 to-blue-900' },
+    { value: 'study_group', label: 'Study Group', color: 'bg-emerald-50 text-emerald-800', gradient: 'from-emerald-800 to-teal-900' },
+    { value: 'competition', label: 'Competition', color: 'bg-rose-50 text-rose-900',    gradient: 'from-rose-800 to-slate-900' },
+    { value: 'networking',  label: 'Networking',  color: 'bg-violet-50 text-violet-900', gradient: 'from-violet-800 to-slate-900' },
+    { value: 'symposium',   label: 'Symposium',   color: 'bg-amber-50 text-amber-900',  gradient: 'from-amber-700 to-stone-900' },
 ];
 
-const getCat = (value) => CATEGORY_OPTIONS.find(c => c.value === value) || { label: value, color: 'bg-gray-100 text-gray-700', gradient: 'from-gray-400 to-gray-500' };
+const getCat = (value) =>
+    CATEGORY_OPTIONS.find(c => c.value === value) ||
+    { label: value, color: 'bg-gray-50 text-gray-700', gradient: 'from-gray-400 to-gray-500' };
 
 const formatTime = (t) => {
     if (!t) return '';
@@ -72,7 +73,6 @@ function Lightbox({ photos, startIndex, onClose }) {
             className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
             onClick={onClose}
         >
-            {/* Top bar */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
                 <span className="text-white/60 text-sm">{idx + 1} / {photos.length}</span>
                 <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -80,7 +80,6 @@ function Lightbox({ photos, startIndex, onClose }) {
                 </button>
             </div>
 
-            {/* Image */}
             <div className="flex-1 flex items-center justify-center px-4 relative" onClick={e => e.stopPropagation()}>
                 {idx > 0 && (
                     <button
@@ -109,7 +108,6 @@ function Lightbox({ photos, startIndex, onClose }) {
                 )}
             </div>
 
-            {/* Caption & uploader */}
             {(photo.caption || photo.uploaded_by_name) && (
                 <div className="px-6 py-4 text-center flex-shrink-0" onClick={e => e.stopPropagation()}>
                     {photo.caption && <p className="text-white text-sm mb-1">{photo.caption}</p>}
@@ -122,13 +120,14 @@ function Lightbox({ photos, startIndex, onClose }) {
     );
 }
 
-// ─── Photo Gallery Panel ───────────────────────────────────────────────────
+// ─── Photo Gallery ─────────────────────────────────────────────────────────
 function PhotoGallery({ event, currentUser, onPhotosChange }) {
     const [uploading, setUploading] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
     const fileRef = useRef(null);
     const photos = event.photos || [];
+    const isParticipant = event.is_joined;
 
     const handleUpload = async (e) => {
         const files = Array.from(e.target.files);
@@ -162,8 +161,6 @@ function PhotoGallery({ event, currentUser, onPhotosChange }) {
         }
     };
 
-    const isParticipant = event.is_joined;
-
     return (
         <div className="mt-5 border-t border-gray-100 pt-5">
             <div className="flex items-center justify-between mb-3">
@@ -191,11 +188,10 @@ function PhotoGallery({ event, currentUser, onPhotosChange }) {
                             disabled={uploading}
                             className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                         >
-                            {uploading ? (
-                                <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
-                            ) : (
-                                <><ImagePlus className="w-3 h-3" /> Add Photos</>
-                            )}
+                            {uploading
+                                ? <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
+                                : <><ImagePlus className="w-3 h-3" /> Add Photos</>
+                            }
                         </button>
                     </>
                 )}
@@ -218,15 +214,13 @@ function PhotoGallery({ event, currentUser, onPhotosChange }) {
                                 className="w-full h-full object-cover rounded-lg cursor-pointer"
                                 onClick={() => setLightboxIdx(i)}
                             />
-                            {/* Hover overlay */}
                             <div
                                 className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-lg transition-all flex items-center justify-center cursor-pointer"
                                 onClick={() => setLightboxIdx(i)}
                             >
                                 <ZoomIn className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            {/* Delete (own photo only) */}
-                            {photo.uploaded_by === currentUser?.user_id && (
+                            {String(photo.uploaded_by) === String(currentUser?.user_id) && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete(photo.photo_id); }}
                                     disabled={deletingId === photo.photo_id}
@@ -243,7 +237,6 @@ function PhotoGallery({ event, currentUser, onPhotosChange }) {
                 </div>
             )}
 
-            {/* Lightbox */}
             <AnimatePresence>
                 {lightboxIdx !== null && (
                     <Lightbox
@@ -258,26 +251,30 @@ function PhotoGallery({ event, currentUser, onPhotosChange }) {
 }
 
 // ─── Event Card ────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, onJoin, onLeave, onDelete, onPhotosChange, actionLoading }) {
+
+function EventCard({ event, currentUser, onJoin, onLeave, onDelete, onEdit, onPhotosChange, actionLoading }) {
     const [expanded, setExpanded] = useState(false);
     const cat = getCat(event.category);
     const isExpired = event.is_expired;
     const isPending = event.status === 'pending';
     const isConfirmed = event.status === 'confirmed';
-    const isCreator = event.created_by === currentUser?.user_id;
+
+    const isCreator = String(event.created_by) === String(currentUser?.user_id);
 
     return (
         <motion.div
-            layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`bg-white rounded-2xl border overflow-hidden transition-all duration-300 group ${
-                isExpired ? 'border-gray-200 opacity-90' : 'border-gray-200 hover:shadow-xl hover:shadow-gray-100'
+            className={`bg-white rounded-2xl border overflow-hidden transition-shadow duration-300 group ${
+                isExpired
+                    ? 'border-gray-200 opacity-90'
+                    : 'border-gray-200 hover:shadow-xl hover:shadow-gray-100'
             }`}
         >
             {/* Gradient header */}
             <div className={`bg-gradient-to-br ${isExpired ? 'from-gray-400 to-gray-500' : cat.gradient} p-6 text-white relative`}>
+
                 {/* Expired ribbon */}
                 {isExpired && (
                     <div className="absolute top-0 right-0">
@@ -289,7 +286,8 @@ function EventCard({ event, currentUser, onJoin, onLeave, onDelete, onPhotosChan
                 )}
 
                 <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-2 flex-wrap pr-20">
+                    {/* Status badges */}
+                    <div className="flex items-center gap-2 flex-wrap pr-2">
                         <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
                             {cat.label}
                         </span>
@@ -312,23 +310,35 @@ function EventCard({ event, currentUser, onJoin, onLeave, onDelete, onPhotosChan
                             </span>
                         )}
                     </div>
-                    {/* Delete button — creator, pending, future only */}
+
                     {isCreator && isPending && !isExpired && (
-                        <button
-                            onClick={() => onDelete(event.event_id)}
-                            disabled={actionLoading === event.event_id}
-                            className="p-1.5 bg-white/20 hover:bg-red-500/80 rounded-lg transition-colors ml-2"
-                            title="Delete event"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                                onClick={() => onEdit(event)}
+                                className="p-1.5 bg-white/20 hover:bg-white/40 rounded-lg transition-colors"
+                                title="Edit event"
+                            >
+                                <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => onDelete(event.event_id)}
+                                disabled={actionLoading === event.event_id}
+                                className="p-1.5 bg-white/20 hover:bg-red-500/80 rounded-lg transition-colors disabled:opacity-50"
+                                title="Delete event"
+                            >
+                                {actionLoading === event.event_id
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Trash2 className="w-4 h-4" />
+                                }
+                            </button>
+                        </div>
                     )}
                 </div>
 
                 <h3 className="text-xl font-semibold mb-1 leading-tight">{event.title}</h3>
                 <p className="text-white/70 text-xs">Created by {event.created_by_name}</p>
 
-                {/* Pending progress bar (future only) */}
+                {/* Progress bar — pending future only */}
                 {isPending && !isExpired && (
                     <div className="mt-4">
                         <div className="flex justify-between text-xs text-white/70 mb-1">
@@ -407,34 +417,37 @@ function EventCard({ event, currentUser, onJoin, onLeave, onDelete, onPhotosChan
                     </Button>
                 )}
 
-                {/* Photo gallery — only for expired events */}
                 {isExpired && (
                     <>
                         <button
                             onClick={() => setExpanded(v => !v)}
-                            className="w-full mt-3 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                            className="w-full mt-3 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
                         >
                             <Camera className="w-3.5 h-3.5" />
-                            {expanded ? 'Hide photos' : `${event.photos?.length ? `View ${event.photos.length} photo${event.photos.length !== 1 ? 's' : ''}` : 'Add event photos'}`}
+                            {expanded
+                                ? 'Hide photos'
+                                : event.photos?.length
+                                    ? `View ${event.photos.length} photo${event.photos.length !== 1 ? 's' : ''}`
+                                    : 'Add event photos'
+                            }
                         </button>
 
-                        <AnimatePresence>
-                            {expanded && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.25 }}
-                                    className="overflow-hidden"
-                                >
-                                    <PhotoGallery
-                                        event={event}
-                                        currentUser={currentUser}
-                                        onPhotosChange={onPhotosChange}
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {expanded && (
+                            <motion.div
+                                key={`gallery-${event.event_id}`}
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="overflow-hidden"
+                            >
+                                <PhotoGallery
+                                    event={event}
+                                    currentUser={currentUser}
+                                    onPhotosChange={onPhotosChange}
+                                />
+                            </motion.div>
+                        )}
                     </>
                 )}
             </div>
@@ -449,13 +462,15 @@ export default function Guild() {
     const [myEvents, setMyEvents] = useState([]);
     const [activeTab, setActiveTab] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
-    const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'upcoming' | 'past'
+    const [filterStatus, setFilterStatus] = useState('all');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState('');
+
+    const [editingEvent, setEditingEvent] = useState(null);
 
     const currentUser = (() => {
         try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
@@ -483,6 +498,27 @@ export default function Guild() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const closeModal = () => {
+        setIsCreating(false);
+        setEditingEvent(null);
+        setCreateError('');
+        setForm(emptyForm);
+    };
+
+    const handleEdit = (event) => {
+        setForm({
+            title:       event.title,
+            description: event.description,
+            category:    event.category,
+            date:        event.date,
+            time_start:  event.time_start,
+            time_end:    event.time_end,
+            venue:       event.venue,
+        });
+        setEditingEvent(event);
+        setIsCreating(true);
     };
 
     const handleJoin = async (eventId) => {
@@ -517,43 +553,42 @@ export default function Guild() {
     const handleCreate = async (e) => {
         e.preventDefault();
         setCreateError('');
-        if (!form.title.trim()) return setCreateError('Title is required');
-        if (!form.category) return setCreateError('Category is required');
-        if (!form.date) return setCreateError('Date is required');
-        if (!form.time_start || !form.time_end) return setCreateError('Start and end time are required');
-        if (!form.venue.trim()) return setCreateError('Venue is required');
-        if (!form.description.trim()) return setCreateError('Description is required');
+        if (!form.title.trim())                    return setCreateError('Title is required');
+        if (!form.category)                        return setCreateError('Category is required');
+        if (!form.date)                            return setCreateError('Date is required');
+        if (!form.time_start || !form.time_end)    return setCreateError('Start and end time are required');
+        if (!form.venue.trim())                    return setCreateError('Venue is required');
+        if (!form.description.trim())              return setCreateError('Description is required');
 
         try {
             setCreateLoading(true);
-            await createEvent(guild.guild_id, form);
-            setForm(emptyForm);
-            setIsCreating(false);
+            if (editingEvent) {
+                await updateEvent(editingEvent.event_id, form);
+            } else {
+                await createEvent(guild.guild_id, form);
+            }
+            closeModal();
             await fetchGuildData();
         } catch (err) {
-            setCreateError(err?.error || 'Failed to create event');
+            setCreateError(err?.error || `Failed to ${editingEvent ? 'update' : 'create'} event`);
         } finally {
             setCreateLoading(false);
         }
     };
 
-    // Derived lists
-    const source = activeTab === 'joined' ? myEvents : events;
-
+    const source   = activeTab === 'joined' ? myEvents : events;
     const filtered = source.filter(e => {
-        const catOk = filterCategory === 'all' || e.category === filterCategory;
-        const statusOk =
-            filterStatus === 'all' ? true :
-            filterStatus === 'upcoming' ? !e.is_expired :
-            e.is_expired;
+        const catOk    = filterCategory === 'all' || e.category === filterCategory;
+        const statusOk = filterStatus === 'all'      ? true
+                       : filterStatus === 'upcoming' ? !e.is_expired
+                       : e.is_expired;
         return catOk && statusOk;
     });
 
-    const upcomingCount = events.filter(e => !e.is_expired).length;
-    const pastCount = events.filter(e => e.is_expired).length;
+    const upcomingCount  = events.filter(e => !e.is_expired).length;
+    const pastCount      = events.filter(e => e.is_expired).length;
     const confirmedCount = events.filter(e => e.status === 'confirmed' && !e.is_expired).length;
 
-    // ── Loading / Error states ──
     if (loading) return (
         <>
             <Navbar />
@@ -588,7 +623,7 @@ export default function Guild() {
             <div className="min-h-screen pt-24 pb-16 px-6 lg:px-8 bg-gray-50">
                 <div className="max-w-7xl mx-auto">
 
-                    {/* ── Guild Header ── */}
+                    {/* Guild Header */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -617,13 +652,12 @@ export default function Guild() {
                                 </div>
                             </div>
 
-                            {/* Stats strip */}
                             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
                                 {[
-                                    { label: 'Members',   value: guild?.member_count || 0, icon: Users,        color: 'text-blue-500' },
-                                    { label: 'Upcoming',  value: upcomingCount,             icon: Calendar,     color: 'text-purple-500' },
-                                    { label: 'Confirmed', value: confirmedCount,             icon: CheckCircle,  color: 'text-green-500' },
-                                    { label: 'My Events', value: myEvents.length,            icon: Award,        color: 'text-orange-500' },
+                                    { label: 'Members',   value: guild?.member_count || 0, icon: Users,       color: 'text-blue-500'   },
+                                    { label: 'Upcoming',  value: upcomingCount,             icon: Calendar,    color: 'text-purple-500' },
+                                    { label: 'Confirmed', value: confirmedCount,             icon: CheckCircle, color: 'text-green-500'  },
+                                    { label: 'My Events', value: myEvents.length,            icon: Award,       color: 'text-orange-500' },
                                 ].map(stat => (
                                     <div key={stat.label} className="p-5 text-center">
                                         <stat.icon className={`w-5 h-5 mx-auto mb-2 ${stat.color}`} />
@@ -635,28 +669,24 @@ export default function Guild() {
                         </div>
                     </motion.div>
 
-                    {/* ── Tabs + Filters ── */}
+                    {/* Tabs + Filters */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.1 }}
                         className="flex flex-col gap-4 mb-8"
                     >
-                        {/* Row 1: tab switcher + status filter */}
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            {/* Tabs */}
                             <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1 shadow-sm">
                                 {[
-                                    { id: 'all', label: 'All Events', count: events.length },
-                                    { id: 'joined', label: 'My Joined', count: myEvents.length, icon: UserCheck },
+                                    { id: 'all',    label: 'All Events', count: events.length },
+                                    { id: 'joined', label: 'My Joined',  count: myEvents.length, icon: UserCheck },
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-                                            activeTab === tab.id
-                                                ? 'bg-black text-white shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-900'
+                                            activeTab === tab.id ? 'bg-black text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'
                                         }`}
                                     >
                                         {tab.icon && <tab.icon className="w-3.5 h-3.5" />}
@@ -668,7 +698,6 @@ export default function Guild() {
                                 ))}
                             </div>
 
-                            {/* Status filter */}
                             <div className="flex gap-2">
                                 {[
                                     { id: 'all',      label: 'All' },
@@ -690,7 +719,6 @@ export default function Guild() {
                             </div>
                         </div>
 
-                        {/* Row 2: category chips */}
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setFilterCategory('all')}
@@ -718,43 +746,39 @@ export default function Guild() {
                         </div>
                     </motion.div>
 
-                    {/* Pending events notice */}
-                    {activeTab === 'all' && filterStatus !== 'past' && events.filter(e => e.status === 'pending' && !e.is_expired).length > 0 && (
+                    {/* Banners */}
+                    {activeTab === 'all' && filterStatus !== 'past' &&
+                     events.filter(e => e.status === 'pending' && !e.is_expired).length > 0 && (
                         <motion.div
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                             className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3"
                         >
                             <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-amber-800">
                                 <span className="font-medium">
-                                    {events.filter(e => e.status === 'pending' && !e.is_expired).length} event{events.filter(e => e.status === 'pending' && !e.is_expired).length > 1 ? 's' : ''} need{events.filter(e => e.status === 'pending' && !e.is_expired).length === 1 ? 's' : ''} 3 pre-joins to be confirmed.
+                                    {events.filter(e => e.status === 'pending' && !e.is_expired).length} event(s) need 3 pre-joins to be confirmed.
                                 </span>
                                 {' '}Pre-join to help organizers!
                             </p>
                         </motion.div>
                     )}
 
-                    {/* Past events photo hint */}
-                    {(filterStatus === 'past' || activeTab === 'joined') && pastCount > 0 && (
+                    {pastCount > 0 && filterStatus === 'past' && (
                         <motion.div
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                             className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3"
                         >
                             <Camera className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-blue-800">
-                                Past events now show a <span className="font-medium">photo gallery</span>.
-                                Participants can upload memories from the event!
+                                Past events have a <span className="font-medium">photo gallery</span>.
+                                Participants can upload memories!
                             </p>
                         </motion.div>
                     )}
 
-                    {/* ── Events Grid ── */}
                     {filtered.length === 0 ? (
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             className="text-center py-20 bg-white rounded-2xl border border-gray-200"
                         >
                             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -776,33 +800,32 @@ export default function Guild() {
                             }
                         </motion.div>
                     ) : (
-                        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <AnimatePresence>
-                                {filtered.map(event => (
-                                    <EventCard
-                                        key={event.event_id}
-                                        event={event}
-                                        currentUser={currentUser}
-                                        onJoin={handleJoin}
-                                        onLeave={handleLeave}
-                                        onDelete={handleDelete}
-                                        onPhotosChange={fetchGuildData}
-                                        actionLoading={actionLoading}
-                                    />
-                                ))}
-                            </AnimatePresence>
-                        </motion.div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filtered.map(event => (
+                                <EventCard
+                                    key={event.event_id}
+                                    event={event}
+                                    currentUser={currentUser}
+                                    onJoin={handleJoin}
+                                    onLeave={handleLeave}
+                                    onDelete={handleDelete}
+                                    onEdit={handleEdit}
+                                    onPhotosChange={fetchGuildData}
+                                    actionLoading={actionLoading}
+                                />
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* ── Create Event Modal ── */}
+            {/* Create / Edit Modal */}
             <AnimatePresence>
                 {isCreating && (
                     <>
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => { setIsCreating(false); setCreateError(''); setForm(emptyForm); }}
+                            onClick={closeModal}
                             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
                         />
                         <motion.div
@@ -816,30 +839,28 @@ export default function Guild() {
                                 className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto pointer-events-auto"
                                 onClick={e => e.stopPropagation()}
                             >
-                                {/* Header */}
                                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                     <div>
-                                        <h2 className="text-2xl tracking-tight text-gray-900">Create New Event</h2>
+                                        <h2 className="text-2xl tracking-tight text-gray-900">
+                                            {editingEvent ? 'Edit Event' : 'Create New Event'}
+                                        </h2>
                                         <p className="text-sm text-gray-400 mt-0.5">For {guild?.name}</p>
                                     </div>
-                                    <button
-                                        onClick={() => { setIsCreating(false); setCreateError(''); setForm(emptyForm); }}
-                                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                                    >
+                                    <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
 
-                                {/* Info banner */}
                                 <div className="mx-6 mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
                                     <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                                     <p className="text-sm text-blue-800">
-                                        Your event needs <span className="font-medium">3 pre-joins</span> to be confirmed.
-                                        You'll automatically be counted as the first pre-join.
+                                        {editingEvent
+                                            ? 'Editing will not affect current pre-joins or the event status.'
+                                            : <>Your event needs <span className="font-medium">3 pre-joins</span> to be confirmed. You'll be counted as the first.</>
+                                        }
                                     </p>
                                 </div>
 
-                                {/* Form */}
                                 <form onSubmit={handleCreate} className="p-6 space-y-4">
                                     {createError && (
                                         <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
@@ -874,7 +895,12 @@ export default function Guild() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div className="space-y-1.5">
                                             <Label htmlFor="ev-date">Date *</Label>
-                                            <Input id="ev-date" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="h-11" min={new Date().toISOString().split('T')[0]} />
+                                            <Input
+                                                id="ev-date" type="date" value={form.date}
+                                                onChange={e => setForm({ ...form, date: e.target.value })}
+                                                className="h-11"
+                                                min={new Date().toISOString().split('T')[0]}
+                                            />
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="ev-start">Start Time *</Label>
@@ -893,9 +919,14 @@ export default function Guild() {
 
                                     <div className="flex gap-3 pt-2">
                                         <Button type="submit" disabled={createLoading} className="flex-1 h-11 bg-black hover:bg-gray-800">
-                                            {createLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Plus className="w-4 h-4 mr-2" />Create Event</>}
+                                            {createLoading
+                                                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{editingEvent ? 'Saving...' : 'Creating...'}</>
+                                                : editingEvent
+                                                    ? <><Edit2 className="w-4 h-4 mr-2" />Save Changes</>
+                                                    : <><Plus className="w-4 h-4 mr-2" />Create Event</>
+                                            }
                                         </Button>
-                                        <Button type="button" variant="outline" onClick={() => { setIsCreating(false); setCreateError(''); setForm(emptyForm); }} className="flex-1 h-11" disabled={createLoading}>
+                                        <Button type="button" variant="outline" onClick={closeModal} className="flex-1 h-11" disabled={createLoading}>
                                             Cancel
                                         </Button>
                                     </div>
