@@ -356,3 +356,70 @@ def delete_event_photo(request, photo_id):
         return Response({'error': 'Photo not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_event(request, event_id):
+    """Update an event — only creator, only pending, only future."""
+    try:
+        event = Event.objects.get(event_id=event_id)
+
+        if event.created_by != request.user:
+            return Response(
+                {'error': 'Only the event creator can edit this event'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if event.status == 'confirmed':
+            return Response(
+                {'error': 'Cannot edit a confirmed event'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if event.date < timezone.now().date():
+            return Response(
+                {'error': 'Cannot edit a past event'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate and parse the new date BEFORE applying any field updates
+        import datetime
+        if 'date' in request.data:
+            import datetime
+            try:
+                new_date = datetime.date.fromisoformat(request.data['date'])
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid date format. Use YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if new_date < timezone.now().date():
+                return Response(
+                    {'error': 'Event date cannot be in the past'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Update only provided fields (date is stored as parsed object)
+        updatable = ['title', 'description', 'category', 'time_start', 'time_end', 'venue']
+        for field in updatable:
+            if field in request.data:
+                setattr(event, field, request.data[field])
+
+        # Set the date as a proper date object (not the raw string)
+        if 'date' in request.data:
+            event.date = new_date
+
+        event.save()
+
+        serializer = EventSerializer(event)
+        event_data = serializer.data
+        event_data['is_expired'] = False
+        event_data['is_joined'] = True
+        event_data['is_confirmed_participant'] = False
+        event_data['photos'] = []
+        return Response(event_data, status=status.HTTP_200_OK)
+
+    except Event.DoesNotExist:
+        return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
