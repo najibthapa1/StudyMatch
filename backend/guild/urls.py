@@ -12,4 +12,5 @@ urlpatterns = [
     path('events/<uuid:event_id>/photos/', views.get_event_photos, name='get_event_photos'),
     path('events/<uuid:event_id>/photos/upload/', views.upload_event_photo, name='upload_event_photo'),
     path('photos/<uuid:photo_id>/delete/', views.delete_event_photo, name='delete_event_photo'),
+    path('events/<uuid:event_id>/update/', views.update_event, name='update_event'),
 ]
