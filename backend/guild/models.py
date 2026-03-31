@@ -90,6 +90,11 @@ class EventParticipant(models.Model):
                 
                 # Mark all participants as confirmed
                 self.event.participants.all().update(is_confirmed=True)
+                try:
+                    from notification.service import notify_event_confirmed
+                    notify_event_confirmed(self.event)
+                except Exception:
+                    pass
                 
                 # Create admin notification
                 from administration.models import AdminNotification

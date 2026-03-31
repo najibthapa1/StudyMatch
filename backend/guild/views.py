@@ -122,6 +122,21 @@ def create_guild_event(request, guild_id):
         event_data['is_joined'] = True
         event_data['is_confirmed_participant'] = False
         event_data['photos'] = []
+        try:
+            from notification.service import notify_event_created
+            from authentication.models import User as _User
+            from user_profile.models import Profile as _Profile
+            member_ids = _Profile.objects.filter(
+                university_name=guild.name
+            ).values_list('user_id', flat=True)
+            guild_members = _User.objects.filter(
+                user_id__in=member_ids,
+                is_active=True,
+                is_verified=True,
+            )
+            notify_event_created(event, guild_members)
+        except Exception:
+            pass 
         return Response(event_data, status=status.HTTP_201_CREATED)
 
     except Guild.DoesNotExist:
@@ -225,7 +240,18 @@ def delete_event(request, event_id):
 
         if event.date < timezone.now().date():
             return Response({'error': 'Cannot delete a past event'}, status=status.HTTP_400_BAD_REQUEST)
-
+        try:
+            from notification.service import notify_event_deleted
+            from authentication.models import User as _User
+            participant_user_ids = list(
+                event.participants.values_list('user_id', flat=True)
+            )
+            participant_users = list(
+                _User.objects.filter(user_id__in=participant_user_ids)
+            )
+            notify_event_deleted(event, participant_users)
+        except Exception:
+            pass
         event.delete()
         return Response({'message': 'Event deleted successfully'}, status=status.HTTP_200_OK)
 
@@ -381,6 +407,11 @@ def update_event(request, event_id):
                 {'error': 'Cannot edit a past event'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        try:
+            from notification.service import notify_event_updated
+            notify_event_updated(event)
+        except Exception:
+            pass
 
         # Validate and parse the new date BEFORE applying any field updates
         import datetime
