@@ -11,6 +11,8 @@ const Connections = lazy(() => import('./components/pages/Connections'));
 const Discovery = lazy(() => import('./components/pages/Discovery'));
 const Chat = lazy(() => import('./components/pages/Chat'));
 const Guild = lazy(() => import('./components/pages/Guild'));
+const Notifications = lazy(() => import('./components/pages/Notification'));
+const StudyMode = lazy(() => import('./components/pages/StudyMode'));
 import { ForgotPassword } from './components/pages/ForgotPassword';
 import { ForgotPasswordVerification } from './components/pages/ForgotPasswordVerification';
 import { ResetPassword } from './components/pages/ResetPassword';
@@ -20,8 +22,8 @@ import { AdminDashboard } from './components/pages/admin/AdminDashboard';
 import { UserList } from './components/pages/admin/UserList';
 import { GuildManagement } from './components/pages/admin/GuildManagement';
 import { Analytics } from './components/pages/admin/Analytics';
-import { Notifications } from './components/pages/admin/Notification';
 import { isAdmin } from './utils/api';
+import { ReportsManagement } from './components/pages/admin/Report';
 
 
 // Protected Route Component
@@ -59,6 +61,9 @@ function App() {
         <Route path="/chat" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Chat /> </Suspense></ProtectedRoute>} />
         <Route path="/chat/:conversationId" element={<ProtectedRoute> <Suspense fallback={<LoadingPage/>}><Chat /></Suspense></ProtectedRoute>} />
         <Route path="/guild" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Guild /></Suspense></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Suspense fallback={<LoadingPage />}><Notifications /></Suspense></ProtectedRoute>}/>
+        <Route path="/study-mode" element={<ProtectedRoute><Suspense fallback={<LoadingPage />}><StudyMode /></Suspense></ProtectedRoute>}/>
+        <Route path="/admin/report" element={<ProtectedRoute adminOnly><ReportsManagement /></ProtectedRoute>}/>
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
