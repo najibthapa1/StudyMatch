@@ -65,6 +65,11 @@ def send_connection_request(request, user_id):
             to_user=to_user,
             status='pending'
         )
+        try:
+            from notification.service import notify_connection_request
+            notify_connection_request(from_user=request.user, to_user=to_user)
+        except Exception:
+            pass
         
         # Create activity
         Activity.objects.create(
@@ -140,6 +145,14 @@ def accept_connection_request(request, request_id):
         
         conn_request.status = 'accepted'
         conn_request.save()
+        try:
+            from notification.service import notify_connection_accepted
+            notify_connection_accepted(
+                acceptor=request.user,
+                requester=conn_request.from_user,
+            )
+        except Exception:
+            pass
         
         Activity.objects.create(
             user=request.user,
