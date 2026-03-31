@@ -772,3 +772,100 @@ export const updateEvent = async (eventId, eventData) => {
         throw error.response?.data || { error: 'Failed to update event' };
     }
 };
+
+
+// ── User Notifications ────────────────────────────────────────────────
+
+export const getNotifications = async (filter = 'all', page = 1) => {
+    try {
+        const response = await api.get(`/notifications/?filter=${filter}&page=${page}&per_page=20`);
+        return response.data;
+    } catch (error) {
+        console.error('Get notifications error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch notifications' };
+    }
+};
+
+export const getNotificationUnreadCount = async () => {
+    try {
+        const response = await api.get('/notifications/unread-count/');
+        return response.data;
+    } catch (error) {
+        console.error('Get unread count error:', error.response?.data);
+        return { unread_count: 0 };
+    }
+};
+
+export const markNotificationRead = async (notificationId) => {
+    try {
+        const response = await api.post(`/notifications/${notificationId}/read/`);
+        return response.data;
+    } catch (error) {
+        console.error('Mark notification read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark as read' };
+    }
+};
+
+export const markAllNotificationsRead = async () => {
+    try {
+        const response = await api.post('/notifications/mark-all-read/');
+        return response.data;
+    } catch (error) {
+        console.error('Mark all notifications read error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to mark all as read' };
+    }
+};
+
+export const deleteUserNotification = async (notificationId) => {
+    try {
+        const response = await api.delete(`/notifications/${notificationId}/delete/`);
+        return response.data;
+    } catch (error) {
+        console.error('Delete notification error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to delete notification' };
+    }
+};
+
+export const clearAllNotifications = async () => {
+    try {
+        const response = await api.delete('/notifications/clear-all/');
+        return response.data;
+    } catch (error) {
+        console.error('Clear notifications error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to clear notifications' };
+    }
+};
+
+// ── Report User ───────────────────────────────────────────────────────
+
+export const reportUser = async (userId, reason, details = '') => {
+    try {
+        const response = await api.post(`/connections/report/${userId}/`, { reason, details });
+        return response.data;
+    } catch (error) {
+        console.error('Report user error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to submit report' };
+    }
+};
+
+// ── Admin Reports ─────────────────────────────────────────────────────
+
+export const getAdminReports = async (status = 'all', page = 1) => {
+    try {
+        const response = await api.get(`/admin/reports/?status=${status}&page=${page}&per_page=50`);
+        return response.data;
+    } catch (error) {
+        console.error('Get admin reports error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to fetch reports' };
+    }
+};
+
+export const updateAdminReport = async (reportId, data) => {
+    try {
+        const response = await api.patch(`/admin/reports/${reportId}/`, data);
+        return response.data;
+    } catch (error) {
+        console.error('Update report error:', error.response?.data);
+        throw error.response?.data || { error: 'Failed to update report' };
+    }
+};
