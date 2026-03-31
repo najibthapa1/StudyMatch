@@ -1,268 +1,221 @@
-import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check, UserPlus, MessageCircle, Calendar, Users } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+    Bell, X, CheckCircle, UserPlus, Calendar,
+    AlertCircle
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
+import {
+    getNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteUserNotification,
+} from '../utils/api';
+
+const TYPE_META = {
+    connection_request:  { icon: UserPlus,    bg: 'bg-blue-500'   },
+    connection_accepted: { icon: UserPlus,    bg: 'bg-green-500'  },
+    event_created:       { icon: Calendar,    bg: 'bg-purple-500' },
+    event_updated:       { icon: Calendar,    bg: 'bg-amber-500'  },
+    event_deleted:       { icon: Calendar,    bg: 'bg-red-500'    },
+    event_confirmed:     { icon: CheckCircle, bg: 'bg-green-600'  },
+    event_reminder:      { icon: Calendar,    bg: 'bg-orange-500' },
+    report_received:     { icon: AlertCircle, bg: 'bg-red-600'    },
+    general:             { icon: Bell,        bg: 'bg-gray-500'   },
+};
+
+function getMeta(type) {
+    return TYPE_META[type] || TYPE_META.general;
+}
 
 export function NotificationDropdown() {
     const [isOpen, setIsOpen] = useState(false);
-    const [notifications, setNotifications] = useState([
-        {
-        id: 1,
-        type: 'connection',
-        title: 'New Connection Request',
-        description: 'Sarah Chen wants to connect with you',
-        time: '5 minutes ago',
-        read: false,
-        avatar: 'SC',
-        },
-        {
-        id: 2,
-        type: 'message',
-        title: 'New Message',
-        description: 'Michael Park sent you a message',
-        time: '1 hour ago',
-        read: false,
-        avatar: 'MP',
-        },
-        {
-        id: 3,
-        type: 'connection',
-        title: 'Connection Request Accepted',
-        description: 'Emma Wilson accepted your connection request',
-        time: '2 hours ago',
-        read: false,
-        avatar: 'EW',
-        },
-        {
-        id: 4,
-        type: 'event',
-        title: 'Event Invitation',
-        description: "You're invited to Machine Learning Workshop",
-        time: '3 hours ago',
-        read: true,
-        avatar: 'ML',
-        },
-        {
-        id: 5,
-        type: 'mention',
-        title: 'New Match',
-        description: 'You matched with David Lee based on shared interests',
-        time: '5 hours ago',
-        read: true,
-        avatar: 'DL',
-        },
-    ]);
-
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     const dropdownRef = useRef(null);
-    const unreadCount = notifications.filter(n => !n.read).length;
 
+    // Close on outside click
     useEffect(() => {
-        const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setIsOpen(false);
-        }
+        const handler = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
         };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const getIcon = (type) => {
-        switch (type) {
-        case 'connection':
-            return <UserPlus className="w-4 h-4" />;
-        case 'message':
-            return <MessageCircle className="w-4 h-4" />;
-        case 'event':
-            return <Calendar className="w-4 h-4" />;
-        case 'mention':
-            return <Users className="w-4 h-4" />;
-        default:
-            return <Bell className="w-4 h-4" />;
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const data = await getNotifications('all');
+            setNotifications(data.notifications.slice(0, 10));
+            setUnreadCount(data.unread_count);
+        } catch {
+            // silent — dropdown shouldn't crash the whole app
         }
+    }, []);
+
+    // Poll every 30 seconds
+    useEffect(() => {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [fetchNotifications]);
+
+    const handleMarkRead = async (id) => {
+        try {
+            await markNotificationRead(id);
+            setNotifications(prev =>
+                prev.map(n => n.notification_id === id ? { ...n, is_read: true } : n)
+            );
+            setUnreadCount(c => Math.max(0, c - 1));
+        } catch { /* silent */ }
     };
 
-    const getIconColor = (type) => {
-        switch (type) {
-        case 'connection':
-            return 'bg-blue-500';
-        case 'message':
-            return 'bg-green-500';
-        case 'event':
-            return 'bg-purple-500';
-        case 'mention':
-            return 'bg-orange-500';
-        default:
-            return 'bg-gray-500';
-        }
+    const handleMarkAllRead = async () => {
+        try {
+            await markAllNotificationsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        } catch { /* silent */ }
     };
 
-    const markAsRead = (id) => {
-        setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
-        ));
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(n => ({ ...n, read: true })));
-    };
-
-    const removeNotification = (id) => {
-        setNotifications(notifications.filter(n => n.id !== id));
-    };
-
-    const handleAccept = (id) => {
-        // Handle connection request accept
-        removeNotification(id);
-    };
-
-    const handleReject = (id) => {
-        // Handle connection request reject
-        removeNotification(id);
+    const handleRemove = async (id, wasUnread) => {
+        try {
+            await deleteUserNotification(id);
+            setNotifications(prev => prev.filter(n => n.notification_id !== id));
+            if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
+        } catch { /* silent */ }
     };
 
     return (
         <div className="relative" ref={dropdownRef}>
-        {/* Notification Bell Button */}
-        <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-            <Bell className="w-5 h-5 text-gray-700" />
-            {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {unreadCount}
-            </span>
-            )}
-        </button>
-
-        {/* Dropdown Panel */}
-        <AnimatePresence>
-            {isOpen && (
-            <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50"
+            {/* Bell button */}
+            <button
+                onClick={() => {
+                    setIsOpen(prev => !prev);
+                    if (!isOpen) fetchNotifications(); // refresh on open
+                }}
+                className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-                {/* Header */}
-                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg">Notifications</h3>
-                    <p className="text-sm text-gray-500">
-                    {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
-                    </p>
-                </div>
+                <Bell className="w-5 h-5 text-gray-700" />
                 {unreadCount > 0 && (
-                    <button
-                    onClick={markAllAsRead}
-                    className="text-sm text-blue-600 hover:text-blue-700"
-                    >
-                    Mark all read
-                    </button>
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                 )}
-                </div>
+            </button>
 
-                {/* Notifications List */}
-                <div className="max-h-[32rem] overflow-y-auto">
-                {notifications.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                    <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>No notifications yet</p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-100">
-                    {notifications.map((notification) => (
-                        <motion.div
-                        key={notification.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className={`p-4 hover:bg-gray-50 transition-colors ${
-                            !notification.read ? 'bg-blue-50' : ''
-                        }`}
-                        >
-                        <div className="flex items-start space-x-3">
-                            {/* Avatar/Icon */}
-                            <div className={`w-10 h-10 rounded-full ${getIconColor(notification.type)} flex items-center justify-center text-white flex-shrink-0`}>
-                            {notification.avatar ? (
-                                <span className="text-sm">{notification.avatar}</span>
-                            ) : (
-                                getIcon(notification.type)
-                            )}
+            {/* Dropdown */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden"
+                    >
+                        {/* Header */}
+                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-medium text-gray-900">Notifications</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+                                </p>
                             </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 mb-1">
-                                {notification.title}
-                            </p>
-                            <p className="text-sm text-gray-600 mb-2">
-                                {notification.description}
-                            </p>
-                            <p className="text-xs text-gray-500">{notification.time}</p>
-
-                            {/* Action Buttons for Connection Requests */}
-                            {notification.type === 'connection' && notification.title === 'New Connection Request' && (
-                                <div className="flex items-center gap-2 mt-3">
-                                <Button
-                                    size="sm"
-                                    onClick={() => handleAccept(notification.id)}
-                                    className="bg-black hover:bg-gray-800 h-8 text-xs"
-                                >
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Accept
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReject(notification.id)}
-                                    className="h-8 text-xs"
-                                >
-                                    Decline
-                                </Button>
-                                </div>
-                            )}
-                            </div>
-
-                            {/* Mark as Read / Remove */}
-                            <div className="flex items-center space-x-1">
-                            {!notification.read && (
+                            {unreadCount > 0 && (
                                 <button
-                                onClick={() => markAsRead(notification.id)}
-                                className="p-1 hover:bg-gray-200 rounded"
-                                title="Mark as read"
+                                    onClick={handleMarkAllRead}
+                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                                 >
-                                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                                    Mark all read
                                 </button>
                             )}
-                            <button
-                                onClick={() => removeNotification(notification.id)}
-                                className="p-1 hover:bg-gray-200 rounded"
-                                title="Remove"
-                            >
-                                <X className="w-4 h-4 text-gray-400" />
-                            </button>
-                            </div>
                         </div>
-                        </motion.div>
-                    ))}
-                    </div>
-                )}
-                </div>
 
-                {/* Footer */}
-                {notifications.length > 0 && (
-                <div className="p-3 border-t border-gray-200 text-center">
-                    <Link to="/notifications" className="text-sm text-gray-600 hover:text-black transition-colors">
-                    View All Notifications
-                    </Link>
-                </div>
+                        {/* List */}
+                        <div className="max-h-[28rem] overflow-y-auto">
+                            {notifications.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <Bell className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                                    <p className="text-sm text-gray-500">No notifications yet</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gray-50">
+                                    {notifications.map(n => {
+                                        const meta = getMeta(n.notification_type);
+                                        const Icon = meta.icon;
+                                        return (
+                                            <motion.div
+                                                key={n.notification_id}
+                                                layout
+                                                className={`px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors ${
+                                                    !n.is_read ? 'bg-blue-50/60' : ''
+                                                }`}
+                                            >
+                                                {/* Icon / avatar */}
+                                                <div className={`w-9 h-9 rounded-full ${meta.bg} flex items-center justify-center text-white flex-shrink-0 overflow-hidden`}>
+                                                    {n.sender_avatar ? (
+                                                        <img src={n.sender_avatar} alt={n.sender_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <Icon className="w-4 h-4" />
+                                                    )}
+                                                </div>
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 leading-snug">
+                                                        {n.title}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                                        {n.message}
+                                                    </p>
+                                                    <p className="text-[11px] text-gray-400 mt-1">{n.time_ago}</p>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    {!n.is_read && (
+                                                        <button
+                                                            onClick={() => handleMarkRead(n.notification_id)}
+                                                            title="Mark as read"
+                                                            className="p-1 hover:bg-gray-200 rounded-md transition-colors"
+                                                        >
+                                                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleRemove(n.notification_id, !n.is_read)}
+                                                        title="Remove"
+                                                        className="p-1 hover:bg-gray-200 rounded-md transition-colors"
+                                                    >
+                                                        <X className="w-3.5 h-3.5 text-gray-400" />
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        {notifications.length > 0 && (
+                            <div className="px-4 py-2.5 border-t border-gray-100 text-center">
+                                <Link
+                                    to="/notifications"
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                                >
+                                    View all notifications
+                                </Link>
+                            </div>
+                        )}
+                    </motion.div>
                 )}
-            </motion.div>
-            )}
-        </AnimatePresence>
+            </AnimatePresence>
         </div>
     );
 }

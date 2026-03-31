@@ -14,6 +14,7 @@ export function AdminNavbar({ onLogout }) {
         { path: '/admin/users', label: 'USERS' },
         { path: '/admin/guilds', label: 'GUILDS' },
         { path: '/admin/analytics', label: 'ANALYTICS' },
+        { path: '/admin/report',       label: 'REPORTS'    }, 
     ];
 
     const handleLogout = () => {

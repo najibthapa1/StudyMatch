@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Edit2, Save, Upload, Users, MessageCircle, TrendingUp, Target, Plus, X, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+    Edit2, Save, Upload, Users, MessageCircle, TrendingUp,
+    Target, Plus, X, CheckCircle2, Clock
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Navbar } from '../Navbar';
-
 import {
     getProfile,
     updateProfile,
@@ -17,10 +20,11 @@ import {
     createStudyGoal,
     updateStudyGoal,
     deleteStudyGoal,
-    getUser
+    getUser,
 } from '../../utils/api';
 
 export default function Profile() {
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -31,10 +35,8 @@ export default function Profile() {
     const [profilePictureFile, setProfilePictureFile] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
-    // ref for hidden file input — clicking the upload div triggers this
     const pictureInputRef = useRef(null);
 
-    // Form states
     const [profileData, setProfileData] = useState({
         full_name: '',
         university_name: '',
@@ -44,25 +46,22 @@ export default function Profile() {
         interests: '',
     });
 
-    // Study goals states
     const [isAddingGoal, setIsAddingGoal] = useState(false);
     const [newGoal, setNewGoal] = useState('');
     const [editingGoalId, setEditingGoalId] = useState(null);
     const [editingGoalText, setEditingGoalText] = useState('');
 
-    useEffect(() => {
-        fetchAllData();
-    }, []);
+    useEffect(() => { fetchAllData(); }, []);
 
     useEffect(() => {
         if (user?.profile) {
             setProfileData({
-                full_name: user.profile.full_name || '',
+                full_name:       user.profile.full_name       || '',
                 university_name: user.profile.university_name || '',
-                course: user.profile.course || '',
-                year: user.profile.year || '',
-                bio: user.profile.bio || '',
-                interests: user.profile.interests || '',
+                course:          user.profile.course          || '',
+                year:            user.profile.year            || '',
+                bio:             user.profile.bio             || '',
+                interests:       user.profile.interests       || '',
             });
         }
     }, [user]);
@@ -70,19 +69,18 @@ export default function Profile() {
     const fetchAllData = async () => {
         try {
             setLoading(true);
-            const [profileData, statsData, activityData, goalsData] = await Promise.all([
+            const [profileRes, statsRes, activityRes, goalsRes] = await Promise.all([
                 getProfile(),
                 getUserStats(),
                 getActivityTimeline(),
-                getStudyGoals()
+                getStudyGoals(),
             ]);
-
-            setUser(profileData);
-            setStats(statsData);
-            setActivities(activityData);
-            setStudyGoals(goalsData);
-        } catch (error) {
-            console.error('Error fetching profile data:', error);
+            setUser(profileRes);
+            setStats(statsRes);
+            setActivities(activityRes);
+            setStudyGoals(goalsRes);
+        } catch (err) {
+            console.error('Error fetching profile data:', err);
         } finally {
             setLoading(false);
         }
@@ -91,24 +89,17 @@ export default function Profile() {
     const handleSave = async () => {
         try {
             setIsSaving(true);
-
-            // Update profile
             await updateProfile(profileData);
-
-            // Upload profile picture if selected
             if (profilePictureFile) {
                 await uploadProfilePicture(profilePictureFile);
                 setProfilePictureFile(null);
                 setProfilePicturePreview(null);
             }
-
-            // Refresh profile data
-            const updatedProfile = await getProfile();
-            setUser(updatedProfile);
-
+            const updated = await getProfile();
+            setUser(updated);
             setIsEditing(false);
-        } catch (error) {
-            console.error('Error saving profile:', error);
+        } catch (err) {
+            console.error('Error saving profile:', err);
             alert('Failed to save profile. Please try again.');
         } finally {
             setIsSaving(false);
@@ -121,30 +112,22 @@ export default function Profile() {
 
     const handleProfilePictureChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setProfilePictureFile(file);
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfilePicturePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
+        if (!file) return;
+        setProfilePictureFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setProfilePicturePreview(reader.result);
+        reader.readAsDataURL(file);
     };
 
-    // Study Goals handlers
+    // ── Study Goals ─────────────────────────────────────────────────────────
     const handleAddGoal = async () => {
-        if (newGoal.trim()) {
-            try {
-                await createStudyGoal(newGoal.trim());
-                setNewGoal('');
-                setIsAddingGoal(false);
-                const goalsData = await getStudyGoals();
-                setStudyGoals(goalsData);
-            } catch (error) {
-                console.error('Error adding goal:', error);
-            }
-        }
+        if (!newGoal.trim()) return;
+        try {
+            await createStudyGoal(newGoal.trim());
+            setNewGoal('');
+            setIsAddingGoal(false);
+            setStudyGoals(await getStudyGoals());
+        } catch (err) { console.error(err); }
     };
 
     const handleStartEditGoal = (goal) => {
@@ -153,17 +136,13 @@ export default function Profile() {
     };
 
     const handleSaveGoalEdit = async () => {
-        if (editingGoalId && editingGoalText.trim()) {
-            try {
-                await updateStudyGoal(editingGoalId, editingGoalText.trim());
-                setEditingGoalId(null);
-                setEditingGoalText('');
-                const goalsData = await getStudyGoals();
-                setStudyGoals(goalsData);
-            } catch (error) {
-                console.error('Error updating goal:', error);
-            }
-        }
+        if (!editingGoalId || !editingGoalText.trim()) return;
+        try {
+            await updateStudyGoal(editingGoalId, editingGoalText.trim());
+            setEditingGoalId(null);
+            setEditingGoalText('');
+            setStudyGoals(await getStudyGoals());
+        } catch (err) { console.error(err); }
     };
 
     const handleCancelGoalEdit = () => {
@@ -174,34 +153,26 @@ export default function Profile() {
     const handleDeleteGoal = async (goalId) => {
         try {
             await deleteStudyGoal(goalId);
-            const goalsData = await getStudyGoals();
-            setStudyGoals(goalsData);
-        } catch (error) {
-            console.error('Error deleting goal:', error);
-        }
+            setStudyGoals(await getStudyGoals());
+        } catch (err) { console.error(err); }
     };
 
-    const getInitials = () => {
-        if (user?.profile?.initials) return user.profile.initials;
-        return 'U';
-    };
+    const getInitials = () => user?.profile?.initials || 'U';
 
     const statsList = [
-        { label: 'Connections', value: stats?.connections || 0, icon: Users, color: 'text-blue-600' },
-        { label: 'Messages', value: stats?.messages || 0, icon: MessageCircle, color: 'text-green-600' },
-        { label: 'Match Rate', value: `${stats?.match_rate || 0}%`, icon: TrendingUp, color: 'text-purple-600' },
+        { label: 'Connections', value: stats?.connections || 0, icon: Users,          color: 'text-blue-600'   },
+        { label: 'Messages',    value: stats?.messages    || 0, icon: MessageCircle,   color: 'text-green-600'  },
+        { label: 'Match Rate',  value: `${stats?.match_rate || 0}%`, icon: TrendingUp, color: 'text-purple-600' },
     ];
 
-    if (loading) {
-        return (
-            <div className="min-h-screen pt-24 pb-12 px-6 lg:px-8 bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading profile...</p>
-                </div>
+    if (loading) return (
+        <div className="min-h-screen pt-24 pb-12 px-6 lg:px-8 bg-gray-50 flex items-center justify-center">
+            <div className="text-center">
+                <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading profile...</p>
             </div>
-        );
-    }
+        </div>
+    );
 
     return (
         <>
@@ -220,28 +191,20 @@ export default function Profile() {
                             <p className="text-xl text-gray-600">Manage your information and activity</p>
                         </div>
                         <Button
-                            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                            onClick={() => isEditing ? handleSave() : setIsEditing(true)}
                             className="bg-black hover:bg-gray-800"
                             disabled={isSaving}
                         >
-                            {isSaving ? (
-                                'Saving...'
-                            ) : isEditing ? (
-                                <>
-                                    <Save className="w-4 h-4 mr-2" />
-                                    Save Changes
-                                </>
+                            {isSaving ? 'Saving...' : isEditing ? (
+                                <><Save className="w-4 h-4 mr-2" />Save Changes</>
                             ) : (
-                                <>
-                                    <Edit2 className="w-4 h-4 mr-2" />
-                                    Edit Profile
-                                </>
+                                <><Edit2 className="w-4 h-4 mr-2" />Edit Profile</>
                             )}
                         </Button>
                     </motion.div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                        {/* Main Profile Section */}
+                        {/* ── Main column ── */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Profile Info Card */}
                             <motion.div
@@ -251,7 +214,7 @@ export default function Profile() {
                                 className="bg-white rounded-2xl p-8 border border-gray-200"
                             >
                                 <div className="flex items-start space-x-6 mb-8">
-                                    {/* Profile Picture */}
+                                    {/* Avatar */}
                                     <div className="flex-shrink-0">
                                         {profilePicturePreview || user?.profile?.profile_picture ? (
                                             <img
@@ -266,7 +229,6 @@ export default function Profile() {
                                         )}
                                         {isEditing && (
                                             <div className="mt-2">
-                                                {/* clicking this div opens the file picker via ref */}
                                                 <div
                                                     onClick={() => pictureInputRef.current?.click()}
                                                     className="flex items-center text-sm text-gray-600 hover:text-black cursor-pointer"
@@ -291,43 +253,27 @@ export default function Profile() {
                                             <p className="text-gray-600 mb-1">{user?.email}</p>
                                             <p className="text-gray-600 mb-1">{profileData.university_name}</p>
                                             <p className="text-gray-600">
-                                                {profileData.course} {profileData.year && `• ${profileData.year}`}
+                                                {profileData.course}{profileData.year && ` • ${profileData.year}`}
                                             </p>
                                         </div>
                                     ) : (
                                         <div className="flex-1 space-y-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="name">Full Name</Label>
-                                                <Input
-                                                    id="name"
-                                                    value={profileData.full_name}
-                                                    onChange={(e) => updateProfileField('full_name', e.target.value)}
-                                                />
+                                                <Label>Full Name</Label>
+                                                <Input value={profileData.full_name} onChange={e => updateProfileField('full_name', e.target.value)} />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="university">University</Label>
-                                                <Input
-                                                    id="university"
-                                                    value={profileData.university_name}
-                                                    onChange={(e) => updateProfileField('university_name', e.target.value)}
-                                                />
+                                                <Label>University</Label>
+                                                <Input value={profileData.university_name} onChange={e => updateProfileField('university_name', e.target.value)} />
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="major">Major</Label>
-                                                    <Input
-                                                        id="major"
-                                                        value={profileData.course}
-                                                        onChange={(e) => updateProfileField('course', e.target.value)}
-                                                    />
+                                                    <Label>Major</Label>
+                                                    <Input value={profileData.course} onChange={e => updateProfileField('course', e.target.value)} />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="year">Year</Label>
-                                                    <Input
-                                                        id="year"
-                                                        value={profileData.year}
-                                                        onChange={(e) => updateProfileField('year', e.target.value)}
-                                                    />
+                                                    <Label>Year</Label>
+                                                    <Input value={profileData.year} onChange={e => updateProfileField('year', e.target.value)} />
                                                 </div>
                                             </div>
                                         </div>
@@ -336,43 +282,27 @@ export default function Profile() {
 
                                 <div className="space-y-6">
                                     <div>
-                                        {isEditing && <Label htmlFor="bio" className="mb-2 block">Bio</Label>}
+                                        {isEditing && <Label className="mb-2 block">Bio</Label>}
                                         {!isEditing ? (
                                             <p className="text-gray-700">{profileData.bio || 'No bio added yet.'}</p>
                                         ) : (
-                                            <Textarea
-                                                id="bio"
-                                                value={profileData.bio}
-                                                onChange={(e) => updateProfileField('bio', e.target.value)}
-                                                rows={4}
-                                                placeholder="Tell us about yourself..."
-                                            />
+                                            <Textarea value={profileData.bio} onChange={e => updateProfileField('bio', e.target.value)} rows={4} placeholder="Tell us about yourself..." />
                                         )}
                                     </div>
-
                                     <div>
                                         <h3 className="mb-3">Areas of Interest</h3>
                                         {!isEditing ? (
                                             <div className="flex flex-wrap gap-2">
                                                 {profileData.interests ? (
-                                                    profileData.interests.split(',').map((interest) => (
-                                                        <span
-                                                            key={interest.trim()}
-                                                            className="px-4 py-2 bg-gray-100 rounded-full"
-                                                        >
-                                                            {interest.trim()}
-                                                        </span>
+                                                    profileData.interests.split(',').map(i => (
+                                                        <span key={i.trim()} className="px-4 py-2 bg-gray-100 rounded-full">{i.trim()}</span>
                                                     ))
                                                 ) : (
                                                     <p className="text-gray-500">No interests added yet.</p>
                                                 )}
                                             </div>
                                         ) : (
-                                            <Input
-                                                value={profileData.interests}
-                                                onChange={(e) => updateProfileField('interests', e.target.value)}
-                                                placeholder="Separate interests with commas"
-                                            />
+                                            <Input value={profileData.interests} onChange={e => updateProfileField('interests', e.target.value)} placeholder="Separate interests with commas" />
                                         )}
                                     </div>
                                 </div>
@@ -393,19 +323,18 @@ export default function Profile() {
                                         {activities.slice(0, 5).map((activity, index) => {
                                             const iconMap = {
                                                 connection: Users,
-                                                message: MessageCircle,
-                                                goal: Target,
-                                                event: CheckCircle2,
+                                                message:    MessageCircle,
+                                                goal:       Target,
+                                                event:      CheckCircle2,
                                             };
-                                            const Icon = iconMap[activity.activity_type] || CheckCircle2;
                                             const colorMap = {
                                                 connection: 'bg-blue-500',
-                                                message: 'bg-purple-500',
-                                                goal: 'bg-green-500',
-                                                event: 'bg-orange-500',
+                                                message:    'bg-purple-500',
+                                                goal:       'bg-green-500',
+                                                event:      'bg-orange-500',
                                             };
+                                            const Icon  = iconMap[activity.activity_type]  || CheckCircle2;
                                             const color = colorMap[activity.activity_type] || 'bg-gray-500';
-
                                             return (
                                                 <motion.div
                                                     key={activity.activity_id}
@@ -432,8 +361,9 @@ export default function Profile() {
                             </motion.div>
                         </div>
 
-                        {/* Sidebar - Stats */}
+                        {/* ── Sidebar ── */}
                         <div className="space-y-6">
+                            {/* Stats */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -463,6 +393,7 @@ export default function Profile() {
                                 </div>
                             </motion.div>
 
+                            {/* Growing Network */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -481,10 +412,36 @@ export default function Profile() {
                                     />
                                 </div>
                             </motion.div>
+
+                            {/* Study Mode */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.25 }}
+                                className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white cursor-pointer hover:from-slate-600 hover:to-slate-700 transition-all"
+                                onClick={() => navigate('/study-mode')}
+                            >
+                                <div className="flex items-center justify-center mb-4">
+                                    <Clock className="w-12 h-12" />
+                                </div>
+                                <h3 className="text-xl mb-2 text-center">Study Mode</h3>
+                                <p className="text-white/90 mb-4 text-center">
+                                    Focus on your studies with our dedicated timer and clock
+                                </p>
+                                <Button
+                                    className="w-full bg-white text-slate-800 hover:bg-gray-100"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate('/study-mode');
+                                    }}
+                                >
+                                    Start Study Mode
+                                </Button>
+                            </motion.div>
                         </div>
                     </div>
 
-                    {/* Study Goals - Full Width */}
+                    {/* Study Goals — Full Width */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -496,13 +453,8 @@ export default function Profile() {
                                 <Target className="w-6 h-6 text-purple-600" />
                                 <h2 className="text-2xl tracking-tight">Study Goals</h2>
                             </div>
-                            <Button
-                                onClick={() => setIsAddingGoal(true)}
-                                className="bg-black hover:bg-gray-800"
-                                size="sm"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Goal
+                            <Button onClick={() => setIsAddingGoal(true)} className="bg-black hover:bg-gray-800" size="sm">
+                                <Plus className="w-4 h-4 mr-2" />Add Goal
                             </Button>
                         </div>
 
@@ -512,7 +464,7 @@ export default function Profile() {
                                     No study goals yet. Add one to get started!
                                 </p>
                             ) : (
-                                studyGoals.map((goal) => (
+                                studyGoals.map(goal => (
                                     <motion.div
                                         key={goal.goal_id}
                                         initial={{ opacity: 0, y: 20 }}
@@ -524,51 +476,28 @@ export default function Profile() {
                                             <div className="flex-1 flex flex-col gap-2">
                                                 <Input
                                                     value={editingGoalText}
-                                                    onChange={(e) => setEditingGoalText(e.target.value)}
-                                                    className="flex-1"
+                                                    onChange={e => setEditingGoalText(e.target.value)}
                                                     autoFocus
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') handleSaveGoalEdit();
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter')  handleSaveGoalEdit();
                                                         if (e.key === 'Escape') handleCancelGoalEdit();
                                                     }}
                                                 />
                                                 <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={handleSaveGoalEdit}
-                                                        size="sm"
-                                                        className="flex-1 bg-green-600 hover:bg-green-700"
-                                                    >
-                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                        Save
+                                                    <Button onClick={handleSaveGoalEdit} size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
+                                                        <CheckCircle2 className="w-4 h-4 mr-2" />Save
                                                     </Button>
-                                                    <Button
-                                                        onClick={handleCancelGoalEdit}
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="flex-1"
-                                                    >
-                                                        Cancel
-                                                    </Button>
+                                                    <Button onClick={handleCancelGoalEdit} size="sm" variant="outline" className="flex-1">Cancel</Button>
                                                 </div>
                                             </div>
                                         ) : (
                                             <>
                                                 <p className="flex-1 text-gray-700">{goal.title}</p>
                                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button
-                                                        onClick={() => handleStartEditGoal(goal)}
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 p-0 hover:bg-blue-100"
-                                                    >
+                                                    <Button onClick={() => handleStartEditGoal(goal)} size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-blue-100">
                                                         <Edit2 className="w-4 h-4 text-blue-600" />
                                                     </Button>
-                                                    <Button
-                                                        onClick={() => handleDeleteGoal(goal.goal_id)}
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 p-0 hover:bg-red-100"
-                                                    >
+                                                    <Button onClick={() => handleDeleteGoal(goal.goal_id)} size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100">
                                                         <X className="w-4 h-4 text-red-600" />
                                                     </Button>
                                                 </div>
@@ -586,36 +515,19 @@ export default function Profile() {
                                 >
                                     <Input
                                         value={newGoal}
-                                        onChange={(e) => setNewGoal(e.target.value)}
+                                        onChange={e => setNewGoal(e.target.value)}
                                         placeholder="Enter your new study goal..."
-                                        className="flex-1"
                                         autoFocus
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleAddGoal();
-                                            if (e.key === 'Escape') {
-                                                setIsAddingGoal(false);
-                                                setNewGoal('');
-                                            }
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter')  handleAddGoal();
+                                            if (e.key === 'Escape') { setIsAddingGoal(false); setNewGoal(''); }
                                         }}
                                     />
                                     <div className="flex gap-2">
-                                        <Button
-                                            onClick={handleAddGoal}
-                                            className="flex-1 bg-black hover:bg-gray-800"
-                                            size="sm"
-                                        >
-                                            <Plus className="w-4 h-4 mr-2" />
-                                            Add
+                                        <Button onClick={handleAddGoal} className="flex-1 bg-black hover:bg-gray-800" size="sm">
+                                            <Plus className="w-4 h-4 mr-2" />Add
                                         </Button>
-                                        <Button
-                                            onClick={() => {
-                                                setIsAddingGoal(false);
-                                                setNewGoal('');
-                                            }}
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1"
-                                        >
+                                        <Button onClick={() => { setIsAddingGoal(false); setNewGoal(''); }} variant="outline" size="sm" className="flex-1">
                                             Cancel
                                         </Button>
                                     </div>
