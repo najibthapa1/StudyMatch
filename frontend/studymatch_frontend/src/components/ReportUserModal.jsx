@@ -30,8 +30,9 @@ export function ReportUserModal({ isOpen, onClose, userName, userEmail, userId }
 
         try {
             const token = localStorage.getItem('access_token');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
             const response = await fetch(
-                `http://localhost:8000/api/connections/report/${userId}/`,
+                `${apiUrl}/connections/report/${userId}/`,
                 {
                     method: 'POST',
                     headers: {

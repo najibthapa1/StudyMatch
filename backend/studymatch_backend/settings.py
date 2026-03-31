@@ -29,7 +29,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
+# Network IP for accessing from other devices (set via env var)
+NETWORK_IP = os.getenv('NETWORK_IP', None)
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+if NETWORK_IP and NETWORK_IP not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(NETWORK_IP)
 
 
 # Application definition
@@ -94,12 +99,26 @@ TEMPLATES = [
 WSGI_APPLICATION = "studymatch_backend.wsgi.application"
 ASGI_APPLICATION = 'studymatch_backend.asgi.application'
 
-# Channel Layers (Redis)
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+# Channel Layers Configuration
+# Set USE_REDIS=true and REDIS_URL env vars to use Redis instead of InMemory
+USE_REDIS = os.getenv('USE_REDIS', 'False').lower() == 'true'
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
+
+if USE_REDIS:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        }
+    }
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -217,18 +236,22 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
-    "http://100.64.218.39:3000",
-    "http://100.64.218.39:5173",
-    "http://192.168.31.227:3000",   
-    "http://192.168.31.227:5173",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://192.168.31.227:5173",
-    "http://100.64.218.39:5173",
 ]
+
+# Auto-add network IP to CORS and CSRF if provided
+if NETWORK_IP:
+    CORS_ALLOWED_ORIGINS += [
+        f"http://{NETWORK_IP}:3000",
+        f"http://{NETWORK_IP}:5173",
+    ]
+    CSRF_TRUSTED_ORIGINS += [
+        f"http://{NETWORK_IP}:5173",
+    ]
 
 CORS_ALLOW_CREDENTIALS = True
 

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Use env var for network access, fallback to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const WS_HOST = import.meta.env.VITE_WS_HOST || 'localhost:8000';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

@@ -23,26 +23,52 @@ def get_user_avatar(user):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.SerializerMethodField()
-    sender_id = serializers.UUIDField(source='sender.user_id', read_only=True)
+    sender_id = serializers.SerializerMethodField()
     sender_avatar = serializers.SerializerMethodField()
     time_ago = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
+    message_id = serializers.SerializerMethodField()
+    conversation = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    updated_at = serializers.SerializerMethodField()
+    read_at = serializers.SerializerMethodField()
+    deleted_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
-            'message_id', 'conversation', 'sender', 'sender_id', 'sender_name',
+            'message_id', 'conversation', 'sender_id', 'sender_name',
             'sender_avatar', 'content', 'file_attachment', 'file_name',
             'file_type', 'file_url', 'is_read', 'read_at', 'is_deleted',
             'deleted_at', 'created_at', 'updated_at', 'time_ago'
         ]
-        read_only_fields = ['message_id', 'sender', 'created_at', 'updated_at']
+
+    def get_message_id(self, obj):
+        return str(obj.message_id)
+
+    def get_conversation(self, obj):
+        return str(obj.conversation.conversation_id)
+
+    def get_sender_id(self, obj):
+        return str(obj.sender.user_id)
 
     def get_sender_name(self, obj):
         return get_user_display_name(obj.sender)
 
     def get_sender_avatar(self, obj):
         return get_user_avatar(obj.sender)
+
+    def get_created_at(self, obj):
+        return obj.created_at.isoformat() if obj.created_at else None
+
+    def get_updated_at(self, obj):
+        return obj.updated_at.isoformat() if obj.updated_at else None
+
+    def get_read_at(self, obj):
+        return obj.read_at.isoformat() if obj.read_at else None
+
+    def get_deleted_at(self, obj):
+        return obj.deleted_at.isoformat() if obj.deleted_at else None
 
     def get_time_ago(self, obj):
         return obj.get_time_ago()

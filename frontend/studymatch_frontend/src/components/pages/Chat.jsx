@@ -196,7 +196,8 @@ export default function Chat() {
 
     const token = localStorage.getItem("access_token");
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//localhost:8000/ws/chat/${convId}/?token=${token}`;
+    const wsHost = import.meta.env.VITE_WS_HOST || 'localhost:8000';
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/chat/${convId}/?token=${token}`;
 
     const ws = new WebSocket(wsUrl);
 
