@@ -74,3 +74,62 @@ class AdminNotification(models.Model):
             return "Just now"
         
 
+class UserReport(models.Model):
+    REPORT_REASONS = [
+        ('spam', 'Spam or Misleading Content'),
+        ('harassment', 'Harassment or Bullying'),
+        ('inappropriate', 'Inappropriate Behavior'),
+        ('fake', 'Fake Profile or Impersonation'),
+        ('scam', 'Scam or Fraud'),
+        ('other', 'Other'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Reviewed'),
+        ('dismissed', 'Dismissed'),
+        ('action_taken', 'Action Taken'),
+    ]
+
+    report_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reported_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reports_filed'
+    )
+    reported_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reports_received'
+    )
+    reason = models.CharField(max_length=30, choices=REPORT_REASONS)
+    details = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reports_reviewed'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return (
+            f"{self.reported_by.email} reported {self.reported_user.email} "
+            f"for {self.reason}"
+        )
+
+    def get_time_ago(self):
+        from django.utils import timezone
+        now = timezone.now()
+        diff = now - self.created_at
+        if diff.days >= 7:
+            return self.created_at.strftime('%b %d')
+        elif diff.days > 0:
+            return f"{diff.days}d ago"
+        elif diff.seconds >= 3600:
+            return f"{diff.seconds // 3600}h ago"
+        elif diff.seconds >= 60:
+            return f"{diff.seconds // 60}m ago"
+        return "just now"
+

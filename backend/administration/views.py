@@ -5,6 +5,8 @@ from .permissions import IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
+from django.db import models as django_models
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Count, Q
@@ -12,10 +14,11 @@ from django.db.models.functions import TruncMonth
 from authentication.models import User
 from user_profile.models import Profile
 from guild.models import Guild, Event
-from .models import UserSuspension, AdminNotification
+from .models import UserSuspension, AdminNotification, UserReport
 from .serializers import (AdminUserSerializer, UserSuspensionSerializer,AdminNotificationSerializer)
 from guild.serializers import GuildSerializer, EventSerializer
 from authentication.serializers import UserSerializer
+from connection.models import ConnectionRequest
 
 # Admin Views
 @api_view(['POST'])
@@ -706,3 +709,167 @@ def admin_delete_notification(request, notification_id):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+ 
+
+# ─── User Report Views ────────────────────────────────────────────────────────
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def report_user(request, user_id):
+    """
+    Report another user. Reporter must be connected to the user OR
+    have had any interaction (relaxed to: any student can report another).
+    """
+    from authentication.models import User
+    from .models import UserReport, AdminNotification
+
+    try:
+        reported_user = User.objects.get(user_id=user_id, is_active=True)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if reported_user == request.user:
+        return Response({'error': 'You cannot report yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reason = request.data.get('reason', '').strip()
+    details = request.data.get('details', '').strip()
+
+    valid_reasons = ['spam', 'harassment', 'inappropriate', 'fake', 'scam', 'other']
+    if reason not in valid_reasons:
+        return Response({'error': 'Invalid reason'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Prevent duplicate pending reports
+    existing = UserReport.objects.filter(
+        reported_by=request.user,
+        reported_user=reported_user,
+        status='pending'
+    ).exists()
+    if existing:
+        return Response(
+            {'error': 'You already have a pending report against this user'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    report = UserReport.objects.create(
+        reported_by=request.user,
+        reported_user=reported_user,
+        reason=reason,
+        details=details,
+    )
+
+    # Create admin notification so it shows in the admin panel
+    reporter_name = _get_reporter_name(request.user)
+    reported_name = _get_reporter_name(reported_user)
+    AdminNotification.objects.create(
+        notification_type='report',
+        title='New User Report',
+        description=(
+            f'{reporter_name} reported {reported_name} '
+            f'for "{report.get_reason_display()}".'
+        ),
+    )
+
+    return Response({'message': 'Report submitted successfully'}, status=status.HTTP_201_CREATED)
+
+
+def _get_reporter_name(user):
+    try:
+        return user.profile.full_name or user.email
+    except Exception:
+        return user.email
+
+
+# ─── Admin: view and manage reports ──────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_get_reports(request):
+    """Admin view of all user reports with filtering."""
+    from .models import UserReport
+
+    status_filter = request.GET.get('status', 'all')
+    page = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 20))
+
+    qs = UserReport.objects.select_related(
+        'reported_by__profile', 'reported_user__profile', 'reviewed_by'
+    )
+    if status_filter != 'all':
+        qs = qs.filter(status=status_filter)
+
+    total = qs.count()
+    start = (page - 1) * per_page
+    reports = qs[start: start + per_page]
+
+    data = []
+    for r in reports:
+        data.append({
+            'report_id': str(r.report_id),
+            'reason': r.reason,
+            'reason_display': r.get_reason_display(),
+            'details': r.details,
+            'status': r.status,
+            'admin_notes': r.admin_notes,
+            'created_at': r.created_at.isoformat(),
+            'time_ago': r.get_time_ago(),
+            'reported_by': {
+                'user_id': str(r.reported_by.user_id),
+                'email': r.reported_by.email,
+                'full_name': _get_reporter_name(r.reported_by),
+            },
+            'reported_user': {
+                'user_id': str(r.reported_user.user_id),
+                'email': r.reported_user.email,
+                'full_name': _get_reporter_name(r.reported_user),
+                'is_suspended': r.reported_user.is_suspended,
+            },
+        })
+
+    pending_count = UserReport.objects.filter(status='pending').count()
+
+    return Response({
+        'reports': data,
+        'pagination': {
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': max(1, (total + per_page - 1) // per_page),
+        },
+        'stats': {
+            'total': UserReport.objects.count(),
+            'pending': pending_count,
+            'reviewed': UserReport.objects.filter(status='reviewed').count(),
+            'action_taken': UserReport.objects.filter(status='action_taken').count(),
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def admin_update_report(request, report_id):
+    """Admin: update report status and add notes."""
+    from .models import UserReport
+    from django.utils import timezone
+
+    try:
+        report = UserReport.objects.get(report_id=report_id)
+    except UserReport.DoesNotExist:
+        return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    new_status = request.data.get('status')
+    admin_notes = request.data.get('admin_notes', report.admin_notes)
+
+    valid_statuses = ['pending', 'reviewed', 'dismissed', 'action_taken']
+    if new_status and new_status not in valid_statuses:
+        return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_status:
+        report.status = new_status
+    report.admin_notes = admin_notes
+    report.reviewed_by = request.user
+    report.reviewed_at = timezone.now()
+    report.save()
+
+    return Response({'message': 'Report updated'}, status=status.HTTP_200_OK)
