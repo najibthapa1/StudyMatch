@@ -4,9 +4,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.db import models
+from django.conf import settings
 from .models import Profile, StudyGoal, Activity
 from .serializers import StudyGoalSerializer, ActivitySerializer
 from authentication.serializers import UserSerializer
+import anthropic
+import random
 
 # Profile Management Views
 @api_view(['GET'])
@@ -278,3 +281,63 @@ def toggle_study_goal(request, goal_id):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+# Study Tip Generator
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_study_tip(request):
+    """Get a random study tip using Anthropic API"""
+    
+    # Fallback tips in case API fails
+    fallback_tips = [
+        "Try the Pomodoro Technique: study for 25 minutes, take a 5-minute break, and after 4 cycles take a longer 15-30 minute break.",
+        "Use active recall instead of passive reading. Close your notes and try to write down everything you remember, then check what you missed.",
+        "Study the same material in different locations. Research shows varying your environment can improve retention.",
+        "Teach what you've learned to someone else (or pretend to). The 'Feynman Technique' helps identify gaps in your understanding.",
+        "Review your notes within 24 hours of taking them. This simple habit can boost retention by up to 60%.",
+        "Break large tasks into smaller, specific goals. Instead of 'study biology', try 'complete 20 flashcards on cell division'.",
+        "Get 7-9 hours of sleep before an exam. Sleep is when your brain consolidates memories from the day.",
+        "Exercise before studying. Even a 20-minute walk can improve focus and memory formation.",
+        "Use spaced repetition: review material at increasing intervals (1 day, 3 days, 1 week, 2 weeks) for long-term retention.",
+        "Minimize multitasking while studying. Each task switch costs you about 25 minutes of refocused attention.",
+    ]
+    
+    try:
+        api_key = getattr(settings, 'ANTHROPIC_API_KEY', None)
+        
+        if not api_key:
+            # Return a random fallback tip if no API key
+            return Response({
+                'tip': random.choice(fallback_tips)
+            }, status=status.HTTP_200_OK)
+        
+        client = anthropic.Anthropic(api_key=api_key)
+        
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=200,
+            messages=[
+                {
+                    "role": "user",
+                    "content": """Give me one practical, actionable study tip for university students. 
+                    Make it specific, evidence-based, and immediately actionable. 
+                    Keep it to 2-3 sentences max. 
+                    Vary the topic — it could be about memory techniques, time management, 
+                    focus strategies, group study, exam prep, note-taking, avoiding burnout, 
+                    active recall, spaced repetition, sleep and cognition, etc.
+                    Do not include any intro like "Here's a tip:" — just give the tip directly."""
+                }
+            ]
+        )
+        
+        tip = message.content[0].text if message.content else random.choice(fallback_tips)
+        
+        return Response({
+            'tip': tip
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error fetching study tip: {e}")
+        return Response({
+            'tip': random.choice(fallback_tips)
+        }, status=status.HTTP_200_OK)

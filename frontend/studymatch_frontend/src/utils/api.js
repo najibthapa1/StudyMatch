@@ -247,6 +247,16 @@ export const getActivityTimeline = async () => {
     }
 };
 
+export const getStudyTip = async () => {
+    try {
+        const response = await api.get('/profile/study-tip/');
+        return response.data;
+    } catch (error) {
+        console.error('Get study tip error:', error.response?.data);
+        throw error;
+    }
+};
+
 export const getStudyGoals = async () => {
     try {
         const response = await api.get('/profile/study-goals/');  

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Users, MessageCircle, Calendar, UserCheck, BookOpen, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Navbar } from '../Navbar';
-import { getUserStats, getActivityTimeline, getUser } from '../../utils/api';
+import { getUserStats, getActivityTimeline, getUser, getStudyTip } from '../../utils/api';
 
 export default function Dashboard() {
     const [user, setUser] = useState(null);
@@ -41,32 +41,8 @@ export default function Dashboard() {
         setTipLoading(true);
         setStudyTip('');
         try {
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
-                    max_tokens: 1000,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: `Give me one practical, actionable study tip for university students. 
-                            Make it specific, evidence-based, and immediately actionable. 
-                            Keep it to 2-3 sentences max. 
-                            Vary the topic each time — it could be about memory techniques, time management, 
-                            focus strategies, group study, exam prep, note-taking, avoiding burnout, 
-                            active recall, spaced repetition, sleep and cognition, etc.
-                            Do not include any intro like "Here's a tip:" — just give the tip directly.`
-                        }
-                    ]
-                })
-            });
-
-            const data = await response.json();
-            const tip = data?.content?.[0]?.text || 'Try the Pomodoro Technique: study for 25 minutes, take a 5-minute break, and after 4 cycles take a longer 15-30 minute break.';
-            setStudyTip(tip);
+            const data = await getStudyTip();
+            setStudyTip(data.tip || 'Try the Pomodoro Technique: study for 25 minutes, take a 5-minute break, and after 4 cycles take a longer 15-30 minute break.');
         } catch (error) {
             console.error('Error fetching study tip:', error);
             setStudyTip('Try the Pomodoro Technique: study for 25 minutes, take a 5-minute break, and after 4 cycles take a longer 15-30 minute break.');

@@ -296,6 +296,9 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # Frontend URL 
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 
+# Anthropic API Key for Study Tips
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+
 # OTP Settings
 OTP_EXPIRY_MINUTES = 10
 
