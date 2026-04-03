@@ -13,7 +13,8 @@ import {
     BarChart,
     UserCheck,
     UserX,
-    Shield
+    Shield,
+    Flag
 } from 'lucide-react';
 import { AdminNavbar } from '../../AdminNavbar';
 import { getAdminDashboardStats, verifyAdminAccess } from '../../../utils/api';
@@ -138,6 +139,7 @@ export function AdminDashboard() {
         { label: 'Manage Users', icon: Users, link: '/admin/users' },
         { label: 'View Guilds', icon: Building2, link: '/admin/guilds' },
         { label: 'View Analytics', icon: BarChart, link: '/admin/analytics' },
+        { label: 'View Reports', icon: Flag, link: '/admin/report' },
     ];
 
     // Use real recent users data
