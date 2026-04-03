@@ -101,14 +101,21 @@ def get_user_stats(request):
     """Get user statistics"""
     try:
         from connection.models import ConnectionRequest
+        from chat.models import Conversation
         
         connections_count = ConnectionRequest.objects.filter(
             (models.Q(from_user=request.user) | models.Q(to_user=request.user)),
             status='accepted'
         ).count()
+        
+        # Count number of people the user has messaged with (conversations)
+        conversations_count = Conversation.objects.filter(
+            models.Q(participant_one=request.user) | models.Q(participant_two=request.user)
+        ).count()
+        
         stats = {
             'connections': connections_count,
-            'messages': 0,
+            'messages': conversations_count,
             'match_rate': 0,
             'projects_completed': 0,
             'study_hours': 0
