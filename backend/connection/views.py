@@ -5,7 +5,7 @@ from rest_framework import status
 from django.db import models
 from django.db.models import Q
 from authentication.models import User
-from user_profile.models import Profile, Activity
+from user_profile.models import Profile, Activity, StudyGoal
 from .models import ConnectionRequest
 from .serializers import ConnectionRequestSerializer
 
@@ -260,6 +260,9 @@ def get_connections(request):
                 last_activity = Activity.objects.filter(user=other_user).first()
                 last_active = last_activity.get_time_ago() if last_activity else 'No recent activity'
                 
+                # Get study goals
+                study_goals = list(StudyGoal.objects.filter(user=other_user, is_completed=False)[:5].values_list('title', flat=True))
+                
                 connections_data.append({
                     'user_id': str(other_user.user_id),
                     'connection_id': str(conn.request_id),
@@ -271,9 +274,11 @@ def get_connections(request):
                         'course': profile.course or '',
                         'year': profile.year or '',
                         'interests': profile.interests or '',
+                        'projects': profile.projects or '',
                         'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
                         'initials': profile.get_initials(),
                     },
+                    'study_goals': study_goals,
                     'connected_date': conn.updated_at.strftime('%b %d, %Y'),
                     'last_active': last_active,
                     'is_connected': True,

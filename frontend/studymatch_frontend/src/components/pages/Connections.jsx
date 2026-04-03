@@ -120,6 +120,8 @@ export default function Connections() {
                 ? connection.profile.interests.split(',').map(i => i.trim())
                 : [],
             bio: connection.profile.bio,
+            projects: connection.profile.projects || '',
+            studyGoals: connection.study_goals || [],
             avatar: connection.profile.initials,
             location: connection.profile.university_name,
             isConnected: true,

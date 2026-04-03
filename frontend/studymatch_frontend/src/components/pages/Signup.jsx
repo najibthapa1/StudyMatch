@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { ChevronRight, ChevronLeft, Upload, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Upload, Eye, EyeOff, CheckCircle, Plus, Trash2 } from 'lucide-react';
 import { registerUser, checkEmailAvailability } from '../../utils/api';
 
 export function Signup() {
@@ -27,8 +27,10 @@ export function Signup() {
     year: '',
     interests: '',
     bio: '',
-    projects: '',
   });
+
+  // Separate state for projects as array
+  const [projects, setProjects] = useState([]);
 
   const [pictureFile, setPictureFile] = useState(null);
   const [picturePreview, setPicturePreview] = useState(null);
@@ -118,6 +120,21 @@ export function Signup() {
     setError('');
   };
 
+  // Project management functions
+  const addProject = () => {
+    setProjects([...projects, { link: '', description: '' }]);
+  };
+
+  const updateProject = (index, field, value) => {
+    const updatedProjects = [...projects];
+    updatedProjects[index][field] = value;
+    setProjects(updatedProjects);
+  };
+
+  const removeProject = (index) => {
+    setProjects(projects.filter((_, i) => i !== index));
+  };
+
   const handlePictureChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -138,6 +155,10 @@ export function Signup() {
     setLoading(true);
     setError('');
 
+    // Filter out empty projects and convert to JSON string
+    const validProjects = projects.filter(p => p.link.trim() || p.description.trim());
+    const projectsJson = validProjects.length > 0 ? JSON.stringify(validProjects) : '';
+
     // Build FormData so we can include the profile picture in one request
     const payload = new FormData();
     payload.append('name', formData.name);
@@ -148,7 +169,7 @@ export function Signup() {
     payload.append('year', formData.year);
     payload.append('interests', formData.interests);
     payload.append('bio', formData.bio);
-    payload.append('projects', formData.projects);
+    payload.append('projects', projectsJson);
     if (pictureFile) {
       payload.append('profile_picture', pictureFile);
     }
@@ -439,15 +460,59 @@ export function Signup() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="projects">Projects (Optional)</Label>
-                  <Textarea
-                    id="projects"
-                    placeholder="Share any projects you've worked on..."
-                    value={formData.projects}
-                    onChange={(e) => updateFormData('projects', e.target.value)}
-                    rows={4}
-                  />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Projects (Optional)</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addProject}
+                      className="h-8"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Project
+                    </Button>
+                  </div>
+                  
+                  {projects.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+                      No projects added yet. Click "Add Project" to share your work.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {projects.map((project, index) => (
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Project {index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeProject(index)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Project link (e.g., https://github.com/username/project)"
+                              value={project.link}
+                              onChange={(e) => updateProject(index, 'link', e.target.value)}
+                              className="h-10"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Textarea
+                              placeholder="Brief description of the project..."
+                              value={project.description}
+                              onChange={(e) => updateProject(index, 'description', e.target.value)}
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

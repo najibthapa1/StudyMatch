@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
     Edit2, Save, Upload, Users, MessageCircle, TrendingUp,
-    Target, Plus, X, CheckCircle2, Clock
+    Target, Plus, X, CheckCircle2, Clock, Trash2, ExternalLink, FolderGit2
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -46,10 +46,29 @@ export default function Profile() {
         interests: '',
     });
 
+    // Separate state for projects as array
+    const [projects, setProjects] = useState([]);
+
     const [isAddingGoal, setIsAddingGoal] = useState(false);
     const [newGoal, setNewGoal] = useState('');
     const [editingGoalId, setEditingGoalId] = useState(null);
     const [editingGoalText, setEditingGoalText] = useState('');
+
+    // Helper to parse projects from JSON string or legacy format
+    const parseProjects = (projectsData) => {
+        if (!projectsData) return [];
+        try {
+            const parsed = JSON.parse(projectsData);
+            if (Array.isArray(parsed)) return parsed;
+            return [];
+        } catch {
+            // Legacy format: plain text, convert to single project
+            if (projectsData.trim()) {
+                return [{ link: '', description: projectsData }];
+            }
+            return [];
+        }
+    };
 
     useEffect(() => { fetchAllData(); }, []);
 
@@ -63,6 +82,7 @@ export default function Profile() {
                 bio:             user.profile.bio             || '',
                 interests:       user.profile.interests       || '',
             });
+            setProjects(parseProjects(user.profile.projects));
         }
     }, [user]);
 
@@ -89,7 +109,12 @@ export default function Profile() {
     const handleSave = async () => {
         try {
             setIsSaving(true);
-            await updateProfile(profileData);
+            
+            // Filter out empty projects and convert to JSON string
+            const validProjects = projects.filter(p => p.link.trim() || p.description.trim());
+            const projectsJson = validProjects.length > 0 ? JSON.stringify(validProjects) : '';
+            
+            await updateProfile({ ...profileData, projects: projectsJson });
             if (profilePictureFile) {
                 await uploadProfilePicture(profilePictureFile);
                 setProfilePictureFile(null);
@@ -104,6 +129,21 @@ export default function Profile() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    // Project management functions
+    const addProject = () => {
+        setProjects([...projects, { link: '', description: '' }]);
+    };
+
+    const updateProject = (index, field, value) => {
+        const updatedProjects = [...projects];
+        updatedProjects[index][field] = value;
+        setProjects(updatedProjects);
+    };
+
+    const removeProject = (index) => {
+        setProjects(projects.filter((_, i) => i !== index));
     };
 
     const updateProfileField = (field, value) => {
@@ -303,6 +343,85 @@ export default function Profile() {
                                             </div>
                                         ) : (
                                             <Input value={profileData.interests} onChange={e => updateProfileField('interests', e.target.value)} placeholder="Separate interests with commas" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="flex items-center gap-2">
+                                                <FolderGit2 className="w-5 h-5 text-gray-700" />
+                                                Projects
+                                            </h3>
+                                            {isEditing && (
+                                                <Button onClick={addProject} variant="outline" size="sm" className="h-8">
+                                                    <Plus className="w-4 h-4 mr-1" />
+                                                    Add Project
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {!isEditing ? (
+                                            <div>
+                                                {projects.length > 0 ? (
+                                                    <div className="space-y-4">
+                                                        {projects.map((project, index) => (
+                                                            <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                                                {project.link && (
+                                                                    <a
+                                                                        href={project.link}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 mb-2"
+                                                                    >
+                                                                        {project.link}
+                                                                        <ExternalLink className="w-3 h-3" />
+                                                                    </a>
+                                                                )}
+                                                                {project.description && (
+                                                                    <p className="text-gray-700">{project.description}</p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-gray-500">No projects added yet.</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                {projects.length === 0 ? (
+                                                    <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+                                                        No projects added yet. Click "Add Project" to share your work.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        {projects.map((project, index) => (
+                                                            <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-sm font-medium text-gray-700">Project {index + 1}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeProject(index)}
+                                                                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                                <Input
+                                                                    placeholder="Project link (e.g., https://github.com/username/project)"
+                                                                    value={project.link}
+                                                                    onChange={(e) => updateProject(index, 'link', e.target.value)}
+                                                                    className="h-10"
+                                                                />
+                                                                <Textarea
+                                                                    placeholder="Brief description of the project..."
+                                                                    value={project.description}
+                                                                    onChange={(e) => updateProject(index, 'description', e.target.value)}
+                                                                    rows={2}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from authentication.models import User
-from user_profile.models import Profile
+from user_profile.models import Profile, StudyGoal
 from connection.models import ConnectionRequest
 from django.db import models
 
@@ -11,10 +11,11 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
     connection_status = serializers.SerializerMethodField()
     request_id = serializers.SerializerMethodField()
     match_score = serializers.SerializerMethodField()
+    study_goals = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['user_id', 'profile', 'is_connected', 'connection_status', 'request_id','match_score']
+        fields = ['user_id', 'profile', 'is_connected', 'connection_status', 'request_id', 'match_score', 'study_goals']
     
     def get_profile(self, obj):
         try:
@@ -26,6 +27,7 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
                 'course': profile.course,
                 'year': profile.year,
                 'interests': profile.interests,
+                'projects': profile.projects,
                 'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
                 'initials': profile.get_initials(),
             }
@@ -95,3 +97,11 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(f"Error calculating match score: {e}")
             return 0.0
+    
+    def get_study_goals(self, obj):
+        """Get the user's study goals"""
+        try:
+            goals = StudyGoal.objects.filter(user=obj, is_completed=False)[:5]
+            return [goal.title for goal in goals]
+        except:
+            return []

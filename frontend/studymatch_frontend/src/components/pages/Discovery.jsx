@@ -531,6 +531,8 @@ export default function Discovery() {
                                 year: selectedStudent.profile.year || 'Year not specified',
                                 bio: selectedStudent.profile.bio || 'No bio provided',
                                 interests: selectedStudent.profile.interests ? selectedStudent.profile.interests.split(',').map(i => i.trim()) : [],
+                                projects: selectedStudent.profile.projects || '',
+                                studyGoals: selectedStudent.study_goals || [],
                                 avatar: selectedStudent.profile.initials,
                                 location: selectedStudent.profile.university_name,
                                 isConnected: selectedStudent.is_connected,

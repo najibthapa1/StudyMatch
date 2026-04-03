@@ -1,8 +1,36 @@
-import { X, Mail, MapPin, Calendar, BookOpen, Award, Users, MessageCircle, UserPlus, UserX, UserCheck } from 'lucide-react';
+import { X, Mail, MapPin, Calendar, BookOpen, Award, Users, MessageCircle, UserPlus, UserX, UserCheck, ExternalLink, Target, FolderGit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './ui/button';
 
+// Helper to parse projects from JSON string or legacy format
+const parseProjects = (projectsData) => {
+  if (!projectsData) return [];
+  
+  // If already an array (passed directly), return it
+  if (Array.isArray(projectsData)) return projectsData;
+  
+  // If string, try to parse as JSON
+  if (typeof projectsData === 'string') {
+    try {
+      const parsed = JSON.parse(projectsData);
+      if (Array.isArray(parsed)) return parsed;
+      return [];
+    } catch {
+      // Legacy format: plain text, convert to single project
+      if (projectsData.trim()) {
+        return [{ link: '', description: projectsData }];
+      }
+      return [];
+    }
+  }
+  
+  return [];
+};
+
 export function ProfileModal({ isOpen, onClose, user, onConnect, onMessage, onRemove }) {
+  // Parse projects
+  const projects = parseProjects(user.projects);
+  
   const stats = [
     { 
       label: 'Projects', 
@@ -175,16 +203,49 @@ export function ProfileModal({ isOpen, onClose, user, onConnect, onMessage, onRe
 
                 {/* Study Goals */}
                 {user.studyGoals && user.studyGoals.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-xl mb-3">Study Goals</h3>
+                  <div className="mb-8">
+                    <h3 className="text-xl mb-3 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-purple-600" />
+                      Study Goals
+                    </h3>
                     <ul className="space-y-2">
-                      {user.studyGoals.map((goal) => (
-                        <li key={goal} className="flex items-start">
-                          <div className="w-1.5 h-1.5 bg-black rounded-full mt-2 mr-3 flex-shrink-0" />
+                      {user.studyGoals.map((goal, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-2 mr-3 flex-shrink-0" />
                           <span className="text-gray-700">{goal}</span>
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* Projects */}
+                {projects.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-xl mb-3 flex items-center gap-2">
+                      <FolderGit2 className="w-5 h-5 text-gray-700" />
+                      Projects
+                    </h3>
+                    <div className="space-y-4">
+                      {projects.map((project, index) => (
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          {project.link && (
+                            <a
+                              href={project.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 mb-2 break-all"
+                            >
+                              {project.link}
+                              <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                            </a>
+                          )}
+                          {project.description && (
+                            <p className="text-gray-700">{project.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
