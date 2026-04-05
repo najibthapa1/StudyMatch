@@ -81,19 +81,23 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
         return None
     
     def get_match_score(self, obj):
-        """Calculate match score using the matching algorithm"""
+        """Read pre-computed match score from context, fallback to live calculation"""
+        score_map = self.context.get('score_map', {})
+        score = score_map.get(obj.user_id)
+        
+        if score is not None:
+            return float(score)
+        
+        # Fallback to live calculation if no pre-computed score exists
         request = self.context.get('request')
         if not request or not request.user:
             return 0.0
         
         try:
             from discovery.services.matching import calculate_match_score
-            
             user_profile = request.user.profile
             other_profile = obj.profile
-            
-            score = calculate_match_score(user_profile, other_profile)
-            return score
+            return calculate_match_score(user_profile, other_profile)
         except Exception as e:
             print(f"Error calculating match score: {e}")
             return 0.0
