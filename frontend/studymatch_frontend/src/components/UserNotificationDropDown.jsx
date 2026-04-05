@@ -56,9 +56,20 @@ export function NotificationDropdown() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const handleOpen = () => {
+    const handleOpen = async () => {
+        const wasOpen = isOpen;
         setIsOpen(!isOpen);
-        if (!isOpen) fetchNotifications(); // refresh on open
+        if (!wasOpen) {
+            fetchNotifications();
+            // Auto-mark all as read when opening dropdown
+            if (unreadCount > 0) {
+                try {
+                    await apiFetch('/notifications/mark-all-read/', { method: 'POST' });
+                    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                    setUnreadCount(0);
+                } catch { /* silent */ }
+            }
+        }
     };
 
     const handleMarkRead = async (id) => {

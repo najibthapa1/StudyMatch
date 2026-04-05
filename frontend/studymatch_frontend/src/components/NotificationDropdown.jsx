@@ -93,9 +93,19 @@ export function NotificationDropdown() {
         <div className="relative" ref={dropdownRef}>
             {/* Bell button */}
             <button
-                onClick={() => {
+                onClick={async () => {
+                    const wasOpen = isOpen;
                     setIsOpen(prev => !prev);
-                    if (!isOpen) fetchNotifications(); // refresh on open
+                    if (!wasOpen) {
+                        fetchNotifications();
+                        if (unreadCount > 0) {
+                            try {
+                                await markAllNotificationsRead();
+                                setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                                setUnreadCount(0);
+                            } catch { /* silent */ }
+                        }
+                    }
                 }}
                 className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
             >

@@ -101,7 +101,20 @@ export function AdminNotificationDropdown() {
         <div className="relative" ref={dropdownRef}>
         {/* Notification Bell Button */}
         <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={async () => {
+                const wasOpen = isOpen;
+                setIsOpen(!isOpen);
+                if (!wasOpen) {
+                    fetchNotifications();
+                    if (unreadCount > 0) {
+                        try {
+                            await markAllNotificationsAsRead();
+                            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                            setUnreadCount(0);
+                        } catch { /* silent */ }
+                    }
+                }
+            }}
             className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
         >
             <Bell className="w-5 h-5 text-white" />
