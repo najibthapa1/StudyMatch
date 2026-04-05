@@ -251,7 +251,7 @@ export default function Profile() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.6, delay: 0.1 }}
-                                className="bg-white rounded-2xl p-8 border border-gray-200"
+                                className="bg-white rounded-2xl p-8 border border-gray-200 max-h-[500px] overflow-y-auto"
                             >
                                 <div className="flex items-start space-x-6 mb-8">
                                     {/* Avatar */}
@@ -361,7 +361,7 @@ export default function Profile() {
                                         {!isEditing ? (
                                             <div>
                                                 {projects.length > 0 ? (
-                                                    <div className="space-y-4">
+                                                    <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
                                                         {projects.map((project, index) => (
                                                             <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                                                 {project.link && (
@@ -385,15 +385,15 @@ export default function Profile() {
                                                     <p className="text-gray-500">No projects added yet.</p>
                                                 )}
                                             </div>
+                                ) : (
+                                    <div>
+                                        {projects.length === 0 ? (
+                                            <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+                                                No projects added yet. Click "Add Project" to share your work.
+                                            </p>
                                         ) : (
-                                            <div>
-                                                {projects.length === 0 ? (
-                                                    <p className="text-sm text-gray-500 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
-                                                        No projects added yet. Click "Add Project" to share your work.
-                                                    </p>
-                                                ) : (
-                                                    <div className="space-y-4">
-                                                        {projects.map((project, index) => (
+                                            <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                                                {projects.map((project, index) => (
                                                             <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
                                                                 <div className="flex items-center justify-between">
                                                                     <span className="text-sm font-medium text-gray-700">Project {index + 1}</span>
@@ -438,8 +438,8 @@ export default function Profile() {
                                 {activities.length === 0 ? (
                                     <p className="text-gray-500 text-center py-8">No recent activity</p>
                                 ) : (
-                                    <div className="space-y-6">
-                                        {activities.slice(0, 5).map((activity, index) => {
+                                    <div className="space-y-6 max-h-48 overflow-y-auto pr-2">
+                                        {activities.map((activity, index) => {
                                             const iconMap = {
                                                 connection: Users,
                                                 message:    MessageCircle,
