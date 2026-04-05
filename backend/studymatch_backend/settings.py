@@ -100,7 +100,6 @@ WSGI_APPLICATION = "studymatch_backend.wsgi.application"
 ASGI_APPLICATION = 'studymatch_backend.asgi.application'
 
 # Channel Layers Configuration
-# Set USE_REDIS=true and REDIS_URL env vars to use Redis instead of InMemory
 USE_REDIS = os.getenv('USE_REDIS', 'False').lower() == 'true'
 REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
 
