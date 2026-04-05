@@ -1,7 +1,6 @@
 from django.db import models
 from authentication.models import User
 
-
 class MatchScore(models.Model):
     user_1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='match_scores_as_user1')
     user_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='match_scores_as_user2')

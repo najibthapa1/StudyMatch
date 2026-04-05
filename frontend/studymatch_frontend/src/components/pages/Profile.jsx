@@ -46,7 +46,6 @@ export default function Profile() {
         interests: '',
     });
 
-    // Separate state for projects as array
     const [projects, setProjects] = useState([]);
 
     const [isAddingGoal, setIsAddingGoal] = useState(false);
@@ -54,7 +53,6 @@ export default function Profile() {
     const [editingGoalId, setEditingGoalId] = useState(null);
     const [editingGoalText, setEditingGoalText] = useState('');
 
-    // Helper to parse projects from JSON string or legacy format
     const parseProjects = (projectsData) => {
         if (!projectsData) return [];
         try {
@@ -62,7 +60,6 @@ export default function Profile() {
             if (Array.isArray(parsed)) return parsed;
             return [];
         } catch {
-            // Legacy format: plain text, convert to single project
             if (projectsData.trim()) {
                 return [{ link: '', description: projectsData }];
             }
@@ -110,7 +107,6 @@ export default function Profile() {
         try {
             setIsSaving(true);
             
-            // Filter out empty projects and convert to JSON string
             const validProjects = projects.filter(p => p.link.trim() || p.description.trim());
             const projectsJson = validProjects.length > 0 ? JSON.stringify(validProjects) : '';
             
@@ -131,7 +127,6 @@ export default function Profile() {
         }
     };
 
-    // Project management functions
     const addProject = () => {
         setProjects([...projects, { link: '', description: '' }]);
     };
@@ -159,7 +154,6 @@ export default function Profile() {
         reader.readAsDataURL(file);
     };
 
-    // ── Study Goals ─────────────────────────────────────────────────────────
     const handleAddGoal = async () => {
         if (!newGoal.trim()) return;
         try {

@@ -4,7 +4,6 @@ from user_profile.models import Profile, StudyGoal
 from connection.models import ConnectionRequest
 from django.db import models
 
-# Discovery User Serializer
 class DiscoveryUserSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
     is_connected = serializers.SerializerMethodField()
@@ -19,93 +18,65 @@ class DiscoveryUserSerializer(serializers.ModelSerializer):
     
     def get_profile(self, obj):
         try:
-            profile = obj.profile
+            p = obj.profile
             return {
-                'full_name': profile.full_name,
-                'bio': profile.bio,
-                'university_name': profile.university_name,
-                'course': profile.course,
-                'year': profile.year,
-                'interests': profile.interests,
-                'projects': profile.projects,
-                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
-                'initials': profile.get_initials(),
+                'full_name': p.full_name, 'bio': p.bio,
+                'university_name': p.university_name, 'course': p.course,
+                'year': p.year, 'interests': p.interests, 'projects': p.projects,
+                'profile_picture': p.profile_picture.url if p.profile_picture else None,
+                'initials': p.get_initials(),
             }
         except:
             return None
     
     def get_is_connected(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user:
+        req = self.context.get('request')
+        if not req or not req.user:
             return False
-        
-        # Check if connected (both directions)
         return ConnectionRequest.objects.filter(
-            (models.Q(from_user=request.user, to_user=obj) | models.Q(from_user=obj, to_user=request.user)),
+            (models.Q(from_user=req.user, to_user=obj) | models.Q(from_user=obj, to_user=req.user)),
             status='accepted'
         ).exists()
     
     def get_connection_status(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user:
+        req = self.context.get('request')
+        if not req or not req.user:
             return None
-        
-        # Check if there's a pending request
-        conn_request = ConnectionRequest.objects.filter(
-            models.Q(from_user=request.user, to_user=obj) | 
-            models.Q(from_user=obj, to_user=request.user)
+        conn = ConnectionRequest.objects.filter(
+            models.Q(from_user=req.user, to_user=obj) | models.Q(from_user=obj, to_user=req.user)
         ).first()
-        
-        if conn_request:
-            if conn_request.status == 'accepted':
+        if conn:
+            if conn.status == 'accepted':
                 return 'accepted'
-            elif conn_request.from_user == request.user:
-                return 'pending_sent'
-            else:
-                return 'pending_received'
+            return 'pending_sent' if conn.from_user == req.user else 'pending_received'
         return None
     
     def get_request_id(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user:
+        req = self.context.get('request')
+        if not req or not req.user:
             return None
-        
-        conn_request = ConnectionRequest.objects.filter(
-            from_user=obj,           
-            to_user=request.user,    
-            status='pending'
-        ).first()
-        
-        if conn_request:
-            return str(conn_request.request_id)
-        return None
+        conn = ConnectionRequest.objects.filter(from_user=obj, to_user=req.user, status='pending').first()
+        return str(conn.request_id) if conn else None
     
     def get_match_score(self, obj):
-        """Read pre-computed match score from context, fallback to live calculation"""
         score_map = self.context.get('score_map', {})
         score = score_map.get(obj.user_id)
-        
         if score is not None:
             return float(score)
         
-        # Fallback to live calculation if no pre-computed score exists
-        request = self.context.get('request')
-        if not request or not request.user:
+        req = self.context.get('request')
+        if not req or not req.user:
             return 0.0
-        
         try:
             from discovery.services.matching import calculate_match_score
-            user_profile = request.user.profile
-            other_profile = obj.profile
-            return calculate_match_score(user_profile, other_profile)
+            return calculate_match_score(req.user.profile, obj.profile)
         except Exception as e:
             print(f"Error calculating match score: {e}")
             return 0.0
     
     def get_study_goals(self, obj):
-        """Get the user's study goals"""
         try:
             goals = StudyGoal.objects.filter(user=obj, is_completed=False)[:5]
-            return [goal.title for goal in goals]
+            return [g.title for g in goals]
         except:
             return []
