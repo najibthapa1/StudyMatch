@@ -4,19 +4,17 @@ from authentication.models import User
 
 
 def get_user_display_name(user):
-    """Get user's full name from their profile, fallback to email."""
     try:
         return user.profile.full_name or user.email
-    except Exception:
+    except AttributeError:
         return user.email
 
 
 def get_user_avatar(user):
-    """Get user's profile picture URL."""
     try:
         if user.profile.profile_picture:
             return user.profile.profile_picture.url
-    except Exception:
+    except AttributeError:
         pass
     return None
 

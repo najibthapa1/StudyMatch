@@ -11,23 +11,30 @@ export function ForgotPassword() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+    const [msgType, setMsgType] = useState('');
 
 const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setMessage('');
     
     try {
         const result = await forgotPassword(email);
         
         if (result.success) {
-        alert('If this email is registered, you will receive a reset code. Please check your email.');
-        navigate('/forgot-password-verify', { state: { email } });
+        setMsgType('success');
+        setMessage('Check your email for a reset code');
+        setTimeout(() => {
+            navigate('/forgot-password-verify', { state: { email } });
+        }, 1500);
         } else {
-        alert(result.error?.error || 'Failed to send reset code');
+        setMsgType('error');
+        setMessage(result.error?.error || 'Failed to send code');
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Something went wrong. Please try again.');
+        setMsgType('error');
+        setMessage('Something went wrong');
     } finally {
         setIsSubmitting(false);
     }
@@ -35,7 +42,6 @@ const handleSubmit = async (e) => {
 
     return (
         <div className="min-h-screen flex items-center justify-center px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-white to-gray-100">
-        {/* Back to Home */}
         <Link
             to="/"
             className="fixed top-8 left-8 flex items-center space-x-2 text-gray-600 hover:text-black transition-colors"
@@ -49,11 +55,10 @@ const handleSubmit = async (e) => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="w-full max-w-md"
         >
             <div className="bg-white rounded-3xl p-8 lg:p-12 shadow-xl border border-gray-200">
-            {/* Icon */}
             <div className="flex justify-center mb-6">
                 <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
                 <Mail className="w-8 h-8 text-white" />
@@ -66,6 +71,14 @@ const handleSubmit = async (e) => {
                 Enter your college email and we'll send you a verification code to reset your password
                 </p>
             </div>
+
+            {message && (
+                <div className={`mb-4 p-3 rounded-lg text-sm text-center ${
+                    msgType === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                }`}>
+                {message}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">

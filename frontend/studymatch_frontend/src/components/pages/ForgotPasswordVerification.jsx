@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Mail, ArrowLeft } from 'lucide-react';
-import { verifyResetCode } from '../../utils/api';
+import { verifyResetCode, forgotPassword } from '../../utils/api';
 
 
 export function ForgotPasswordVerification() {
@@ -15,6 +15,7 @@ export function ForgotPasswordVerification() {
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [isVerifying, setIsVerifying] = useState(false);
     const [countdown, setCountdown] = useState(60);
+    const [resending, setResending] = useState(false);
 
     useEffect(() => {
         if (countdown > 0) {
@@ -65,10 +66,15 @@ const handleSubmit = async (e) => {
     }
 };
 
-    const handleResend = () => {
-        setCode(['', '', '', '', '', '']);
-        setCountdown(60);
-        // TODO: Call resend API
+    const handleResend = async () => {
+        if (countdown > 0 || resending) return;
+        setResending(true);
+        const result = await forgotPassword(email);
+        setResending(false);
+        if (result.success) {
+            setCode(['', '', '', '', '', '']);
+            setCountdown(60);
+        }
     };
 
     return (
@@ -79,14 +85,12 @@ const handleSubmit = async (e) => {
             transition={{ duration: 0.6 }}
             className="w-full max-w-lg"
         >
-            {/* Icon */}
             <div className="flex justify-center mb-8">
             <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
                 <Mail className="w-8 h-8 text-white" />
             </div>
             </div>
 
-            {/* Heading */}
             <div className="text-center mb-8">
             <h1 className="text-2xl mb-4">Verify Your Email</h1>
             <p className="text-gray-600">
@@ -96,15 +100,12 @@ const handleSubmit = async (e) => {
             </p>
             </div>
 
-            {/* White Card */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Label */}
                 <div className="text-center">
                 <label className="text-gray-600 text-sm">Enter verification code</label>
                 </div>
 
-                {/* Code Input Boxes */}
                 <div className="flex justify-center gap-3">
                 {code.map((digit, index) => (
                     <Input
@@ -121,7 +122,6 @@ const handleSubmit = async (e) => {
                 ))}
                 </div>
 
-                {/* Verify Button */}
                 <Button
                 type="submit"
                 className="w-full h-12 bg-gray-500 hover:bg-gray-600 text-white"
@@ -130,7 +130,6 @@ const handleSubmit = async (e) => {
                 {isVerifying ? 'Verifying...' : 'Verify Code'}
                 </Button>
 
-                {/* Resend Section */}
                 <div className="text-center space-y-2">
                 <p className="text-gray-900 text-sm">Didn't receive the code?</p>
                 {countdown > 0 ? (
@@ -139,16 +138,16 @@ const handleSubmit = async (e) => {
                     <button
                     type="button"
                     onClick={handleResend}
+                    disabled={resending}
                     className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
                     >
-                    Resend code
+                    {resending ? 'Sending...' : 'Resend code'}
                     </button>
                 )}
                 </div>
             </form>
             </div>
 
-            {/* Back to Login */}
             <div className="mt-8 text-center">
             <Link
                 to="/login"

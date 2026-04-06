@@ -11,16 +11,15 @@ from user_profile.models import Profile, Activity
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_my_guild(request):
-    """Get the guild for the current user's university."""
     try:
         profile = request.user.profile
         guild = Guild.objects.get(name=profile.university_name)
         serializer = GuildSerializer(guild)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
     except Profile.DoesNotExist:
         return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
     except Guild.DoesNotExist:
-        return Response({'error': 'Guild not found for your university'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'No guild for your university'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -28,7 +27,6 @@ def get_my_guild(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_guild_events(request, guild_id):
-    """Get all events for a guild with participation status and expiry."""
     try:
         guild = Guild.objects.get(guild_id=guild_id)
         today = timezone.now().date()
@@ -36,28 +34,22 @@ def get_guild_events(request, guild_id):
 
         events_data = []
         for event in events:
-            event_data = EventSerializer(event).data
+            data = EventSerializer(event).data
+            data['is_expired'] = event.date < today
 
-            # Expiry flag
-            event_data['is_expired'] = event.date < today
+            participant = EventParticipant.objects.filter(event=event, user=request.user).first()
+            data['is_joined'] = participant is not None
+            data['is_confirmed_participant'] = participant.is_confirmed if participant else False
 
-            # Participation status
-            participant = EventParticipant.objects.filter(
-                event=event, user=request.user
-            ).first()
-            event_data['is_joined'] = participant is not None
-            event_data['is_confirmed_participant'] = participant.is_confirmed if participant else False
-
-            # Photos (only for expired/past events)
-            if event_data['is_expired']:
+            if data['is_expired']:
                 photos = EventPhoto.objects.filter(event=event)
-                event_data['photos'] = EventPhotoSerializer(photos, many=True).data
+                data['photos'] = EventPhotoSerializer(photos, many=True).data
             else:
-                event_data['photos'] = []
+                data['photos'] = []
 
-            events_data.append(event_data)
+            events_data.append(data)
 
-        return Response(events_data, status=status.HTTP_200_OK)
+        return Response(events_data)
     except Guild.DoesNotExist:
         return Response({'error': 'Guild not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
@@ -67,17 +59,13 @@ def get_guild_events(request, guild_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_guild_event(request, guild_id):
-    """Create a new event in a guild."""
     try:
         guild = Guild.objects.get(guild_id=guild_id)
 
         try:
             profile = request.user.profile
             if profile.university_name != guild.name:
-                return Response(
-                    {'error': 'You can only create events in your university guild'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                return Response({'error': 'Can only create events in your own guild'}, status=status.HTTP_403_FORBIDDEN)
         except Profile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -86,8 +74,6 @@ def create_guild_event(request, guild_id):
             if not request.data.get(field):
                 return Response({'error': f'{field} is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prevent creating events in the past
-        from datetime import date as date_type
         import datetime
         event_date = datetime.date.fromisoformat(request.data['date'])
         if event_date < timezone.now().date():
@@ -106,7 +92,6 @@ def create_guild_event(request, guild_id):
             status='pending'
         )
 
-        # Creator automatically pre-joins
         EventParticipant.objects.create(event=event, user=request.user)
 
         Activity.objects.create(
@@ -117,27 +102,23 @@ def create_guild_event(request, guild_id):
         )
 
         serializer = EventSerializer(event)
-        event_data = serializer.data
-        event_data['is_expired'] = False
-        event_data['is_joined'] = True
-        event_data['is_confirmed_participant'] = False
-        event_data['photos'] = []
+        data = serializer.data
+        data['is_expired'] = False
+        data['is_joined'] = True
+        data['is_confirmed_participant'] = False
+        data['photos'] = []
+        
+        # notify guild members
         try:
             from notification.service import notify_event_created
             from authentication.models import User as _User
             from user_profile.models import Profile as _Profile
-            member_ids = _Profile.objects.filter(
-                university_name=guild.name
-            ).values_list('user_id', flat=True)
-            guild_members = _User.objects.filter(
-                user_id__in=member_ids,
-                is_active=True,
-                is_verified=True,
-            )
-            notify_event_created(event, guild_members)
+            member_ids = _Profile.objects.filter(university_name=guild.name).values_list('user_id', flat=True)
+            members = _User.objects.filter(user_id__in=member_ids, is_active=True, is_verified=True)
+            notify_event_created(event, members)
         except Exception:
-            pass 
-        return Response(event_data, status=status.HTTP_201_CREATED)
+            pass
+        return Response(data, status=status.HTTP_201_CREATED)
 
     except Guild.DoesNotExist:
         return Response({'error': 'Guild not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -148,19 +129,14 @@ def create_guild_event(request, guild_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def join_event(request, event_id):
-    """Join/pre-join an event — blocked if expired."""
     try:
         event = Event.objects.get(event_id=event_id)
 
-        # Block joining expired events
         if event.date < timezone.now().date():
-            return Response(
-                {'error': 'This event has already passed'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Event already passed'}, status=status.HTTP_400_BAD_REQUEST)
 
         if EventParticipant.objects.filter(event=event, user=request.user).exists():
-            return Response({'error': 'Already joined this event'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Already joined'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant = EventParticipant.objects.create(event=event, user=request.user)
 
@@ -173,16 +149,13 @@ def join_event(request, event_id):
 
         event.refresh_from_db()
         serializer = EventSerializer(event)
-        event_data = serializer.data
-        event_data['is_expired'] = event.date < timezone.now().date()
-        event_data['is_joined'] = True
-        event_data['is_confirmed_participant'] = participant.is_confirmed
-        event_data['photos'] = []
+        data = serializer.data
+        data['is_expired'] = event.date < timezone.now().date()
+        data['is_joined'] = True
+        data['is_confirmed_participant'] = participant.is_confirmed
+        data['photos'] = []
 
-        return Response({
-            'message': 'Successfully joined event',
-            'event': event_data
-        }, status=status.HTTP_200_OK)
+        return Response({'message': 'Joined', 'event': data})
 
     except Event.DoesNotExist:
         return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -193,31 +166,24 @@ def join_event(request, event_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def leave_event(request, event_id):
-    """Leave an event."""
     try:
         event = Event.objects.get(event_id=event_id)
 
         if event.date < timezone.now().date():
-            return Response(
-                {'error': 'Cannot leave a past event'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Cannot leave past event'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant = EventParticipant.objects.filter(event=event, user=request.user).first()
         if not participant:
-            return Response({'error': 'You have not joined this event'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Not joined'}, status=status.HTTP_400_BAD_REQUEST)
 
         if event.status == 'confirmed' and participant.is_confirmed:
-            return Response(
-                {'error': 'Cannot leave a confirmed event'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Cannot leave confirmed event'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant.delete()
         event.pre_joined_count = event.participants.count()
         event.save()
 
-        return Response({'message': 'Successfully left event'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Left event'})
 
     except Event.DoesNotExist:
         return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -228,7 +194,6 @@ def leave_event(request, event_id):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_event(request, event_id):
-    """Delete an event (only creator, only pending, only future)."""
     try:
         event = Event.objects.get(event_id=event_id)
 

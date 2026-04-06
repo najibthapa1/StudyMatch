@@ -6,9 +6,7 @@ from django.db.models import Q, F
 from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
 
-# Conversation Model 
 class Conversation(models.Model):
-    """Private conversation between two users."""
     conversation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     participant_one = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_one')
     participant_two = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_two')
@@ -17,9 +15,7 @@ class Conversation(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
-        # Only one conversation  between any two users
         unique_together = ('participant_one', 'participant_two')
-        # Prevent users from creating conversation with themselves
         constraints = [
             models.CheckConstraint(
                 check=~Q(participant_one=F('participant_two')),name='different_participants'
@@ -30,29 +26,24 @@ class Conversation(models.Model):
         return f"{self.participant_one.email} ↔ {self.participant_two.email}"
 
     def save(self, *args, **kwargs):
-        """Prevents duplicate conversations."""
+        # keep lower user_id first to avoid duplicate conversations
         if self.participant_two.user_id < self.participant_one.user_id:
             self.participant_one, self.participant_two = self.participant_two, self.participant_one
         super().save(*args, **kwargs)
 
     def get_other_participant(self, user):
-        """Return the other user in the conversation."""
         if self.participant_one == user:
             return self.participant_two
         return self.participant_one
 
     def get_last_message(self):
-        """Last message in the conversation."""
         return self.messages.first()
 
     def unread_count_for(self, user):
-        """Count unread messages."""
         return self.messages.filter(is_read=False).exclude(sender=user).count()
 
 
-# Message Model
 class Message(models.Model):
-    """Chat message."""
     message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name='messages'
@@ -76,17 +67,17 @@ class Message(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['-created_at']),models.Index(fields=['conversation', '-created_at']),models.Index(fields=['is_read', 'sender']),
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['conversation', '-created_at']),
+            models.Index(fields=['is_read', 'sender']),
         ]
 
     def __str__(self):
         return f"{self.sender.email}: {self.content[:50]}"
 
     def get_time_ago(self):
-        """Time difference."""
         now = timezone.now()
         diff = now - self.created_at
-
         if diff.days > 0:
             if diff.days == 1:
                 return "Yesterday"
@@ -104,16 +95,13 @@ class Message(models.Model):
             return "Just now"
 
     def mark_as_read(self):
-        """Mark message as read."""
         if not self.is_read:
             self.is_read = True
             self.read_at = timezone.now()
             self.save(update_fields=['is_read', 'read_at'])
 
 
-# Typing Indicator Model
 class TypingIndicator(models.Model):
-    """Typing status."""
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name='typing_indicators'
     )
@@ -125,7 +113,7 @@ class TypingIndicator(models.Model):
         unique_together = ('conversation', 'user')
 
     def __str__(self):
-        return f"{self.user.email} typing in conversation {self.conversation.conversation_id}"
+        return f"{self.user.email} typing in {self.conversation.conversation_id}"
 
 
 

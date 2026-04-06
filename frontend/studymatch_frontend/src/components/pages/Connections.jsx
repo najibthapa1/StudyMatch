@@ -12,6 +12,7 @@ import { ReportUserModal } from '../ReportUserModal';
 import { getConnections, removeConnection } from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 
+// loading placeholder
 function SkeletonConnectionCard() {
     return (
         <div className="bg-white rounded-2xl p-6 border border-gray-200 animate-pulse">
@@ -53,6 +54,7 @@ export default function Connections() {
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [removeError, setRemoveError] = useState(null);
     const [removingUserId, setRemovingUserId] = useState(null);
     const [menuOpenId, setMenuOpenId] = useState(null);
 
@@ -86,15 +88,16 @@ export default function Connections() {
     };
 
     const handleRemoveConnection = async (userId) => {
-        if (!window.confirm('Are you sure you want to remove this connection?')) return;
+        if (!window.confirm('Remove this connection?')) return;
         try {
             setRemovingUserId(userId);
+            setRemoveError(null);
             await removeConnection(userId);
             setConnections(prev => prev.filter(c => c.user_id !== userId));
             setProfileModalOpen(false);
             setMenuOpenId(null);
         } catch (err) {
-            alert(err.error || 'Failed to remove connection');
+            setRemoveError(err.error || 'Could not remove');
         } finally {
             setRemovingUserId(null);
         }

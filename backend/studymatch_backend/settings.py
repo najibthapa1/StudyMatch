@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "cloudinary_storage",
     "django.contrib.staticfiles",
-        # Third party apps
+    # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',

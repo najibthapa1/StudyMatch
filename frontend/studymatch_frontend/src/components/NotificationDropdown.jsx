@@ -35,7 +35,6 @@ export function NotificationDropdown() {
     const [unreadCount, setUnreadCount] = useState(0);
     const dropdownRef = useRef(null);
 
-    // Close on outside click
     useEffect(() => {
         const handler = (e) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -52,11 +51,9 @@ export function NotificationDropdown() {
             setNotifications(data.notifications.slice(0, 10));
             setUnreadCount(data.unread_count);
         } catch {
-            // silent — dropdown shouldn't crash the whole app
         }
     }, []);
 
-    // Poll every 30 seconds
     useEffect(() => {
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 30000);

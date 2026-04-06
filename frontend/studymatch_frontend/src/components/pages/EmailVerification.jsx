@@ -18,13 +18,10 @@ export function EmailVerification() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    // Redirect if no email provided
     if (!email) {
       navigate('/signup');
       return;
     }
-
-    // Countdown timer
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
@@ -33,8 +30,6 @@ export function EmailVerification() {
 
   const handleChange = (index, value) => {
     if (value.length > 1) return;
-    
-    // Only allow numbers
     if (value && !/^\d$/.test(value)) return;
     
     const newCode = [...code];
@@ -42,17 +37,15 @@ export function EmailVerification() {
     setCode(newCode);
     setError('');
 
-    // Auto-focus next input
+    // move to next box
     if (value && index < 5) {
-      const nextInput = document.getElementById(`code-${index + 1}`);
-      nextInput?.focus();
+      document.getElementById(`code-${index + 1}`)?.focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
-      const prevInput = document.getElementById(`code-${index - 1}`);
-      prevInput?.focus();
+      document.getElementById(`code-${index - 1}`)?.focus();
     }
   };
 
@@ -118,17 +111,15 @@ export function EmailVerification() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.5 }}
         className="w-full max-w-lg"
       >
-        {/* Icon */}
         <div className="flex justify-center mb-8">
           <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center">
             <Mail className="w-8 h-8 text-white" />
           </div>
         </div>
 
-        {/* Heading */}
         <div className="text-center mb-8">
           <h1 className="text-2xl mb-4">Verify Your Email</h1>
           <p className="text-gray-600">
@@ -138,29 +129,24 @@ export function EmailVerification() {
           </p>
         </div>
 
-        {/* White Card */}
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Label */}
             <div className="text-center">
               <label className="text-gray-600 text-sm">Enter verification code</label>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600 text-center">{error}</p>
               </div>
             )}
 
-            {/* Success Message */}
             {success && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-600 text-center">{success}</p>
               </div>
             )}
 
-            {/* Code Input Boxes */}
             <div className="flex justify-center gap-3">
               {code.map((digit, index) => (
                 <Input
@@ -179,7 +165,6 @@ export function EmailVerification() {
               ))}
             </div>
 
-            {/* Verify Button */}
             <Button
               type="submit"
               className="w-full h-12 bg-black hover:bg-gray-800 text-white"
@@ -188,7 +173,6 @@ export function EmailVerification() {
               {isVerifying ? 'Verifying...' : 'Verify Email'}
             </Button>
 
-            {/* Resend Section */}
             <div className="text-center space-y-2">
               <p className="text-gray-900 text-sm">Didn't receive the code?</p>
               {countdown > 0 ? (

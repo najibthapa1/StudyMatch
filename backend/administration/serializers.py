@@ -49,72 +49,34 @@ class AdminUserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['user_id', 'email', 'role', 'is_verified', 'is_suspended', 'is_active', 'created_at', 'profile', 'active_suspension']
+        fields = ['user_id', 'email', 'role', 'is_verified', 'is_suspended', 
+                  'is_active', 'created_at', 'profile', 'active_suspension']
     
     def get_profile(self, obj):
         try:
-            profile = obj.profile
+            p = obj.profile
             return {
-                'profile_id': str(profile.profile_id),
-                'full_name': profile.full_name,
-                'bio': profile.bio,
-                'university_name': profile.university_name,
-                'course': profile.course,
-                'year': profile.year,
-                'interests': profile.interests,
-                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
-                'initials': profile.get_initials(),
+                'profile_id': str(p.profile_id),
+                'full_name': p.full_name,
+                'bio': p.bio,
+                'university_name': p.university_name,
+                'course': p.course,
+                'year': p.year,
+                'interests': p.interests,
+                'profile_picture': p.profile_picture.url if p.profile_picture else None,
+                'initials': p.get_initials(),
             }
-        except:
+        except Profile.DoesNotExist:
             return None
     
     def get_active_suspension(self, obj):
-        if obj.is_suspended:
-            suspension = obj.suspensions.filter(is_active=True, expires_at__gt=timezone.now()).first()
-            if suspension:
-                return UserSuspensionSerializer(suspension).data
-        return None
-
-class AdminUserSerializer(serializers.ModelSerializer):
-    profile = serializers.SerializerMethodField()
-    active_suspension = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = User
-        fields = [
-            'user_id',
-            'email',
-            'role',
-            'is_verified',
-            'is_suspended',
-            'is_active',
-            'created_at',
-            'profile',
-            'active_suspension'
-        ]
-    
-    def get_profile(self, obj):
-        try:
-            profile = obj.profile
-            return {
-                'profile_id': str(profile.profile_id),
-                'full_name': profile.full_name,
-                'bio': profile.bio,
-                'university_name': profile.university_name,
-                'course': profile.course,
-                'year': profile.year,
-                'interests': profile.interests,
-                'profile_picture': profile.profile_picture.url if profile.profile_picture else None,
-                'initials': profile.get_initials(),
-            }
-        except:
+        if not obj.is_suspended:
             return None
-    
-    def get_active_suspension(self, obj):
-        if obj.is_suspended:
-            suspension = obj.suspensions.filter(is_active=True, expires_at__gt=timezone.now()).first()
-            if suspension:
-                return UserSuspensionSerializer(suspension).data
+        suspension = obj.suspensions.filter(
+            is_active=True, expires_at__gt=timezone.now()
+        ).first()
+        if suspension:
+            return UserSuspensionSerializer(suspension).data
         return None
 
 

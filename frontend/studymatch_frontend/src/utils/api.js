@@ -1,62 +1,48 @@
 import axios from 'axios';
 
-// Use env var for network access, fallback to localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 export const WS_HOST = import.meta.env.VITE_WS_HOST || 'localhost:8000';
 
-const api = axios.create({
-    baseURL: API_BASE_URL,
-});
+const api = axios.create({ baseURL: API_BASE_URL });
 
-// Authorization header to requests
+// attach auth token to requests
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('access_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+        if (token) config.headers.Authorization = `Bearer ${token}`;
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// Register new user
+
 export const registerUser = async (userData) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/register/`, userData);
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Registration error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Registration failed' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/register/`, userData);
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Registration error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Registration failed' };
     }
 };
 
 export const checkEmailAvailability = async (email) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/check-email/`, { email });
-        return response.data; // { available: true/false }
-    } catch (error) {
-        console.error('Email check error:', error.response?.data);
+        const res = await axios.post(`${API_BASE_URL}/auth/check-email/`, { email });
+        return res.data;
+    } catch (err) {
+        console.error('Email check error:', err.response?.data);
         return { available: true };
     }
 };
 
-// Verify email with code
 export const verifyEmail = async (email, code) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/verify-email/`, { email, code });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Verification error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Verification failed' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/verify-email/`, { email, code });
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Verification error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Verification failed' };
     }
 };
 
@@ -74,71 +60,52 @@ export const resendVerification = async (email) => {
     }
 };
 
-// Login user
 export const loginUser = async (email, password) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/login/`, { email, password });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Login error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Login failed' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/login/`, { email, password });
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Login error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Login failed' };
     }
 };
 
-// Password Reset
 export const forgotPassword = async (email) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/forgot-password/`, { email });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Forgot password error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Failed to send reset code' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/forgot-password/`, { email });
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Forgot password error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Failed' };
     }
 };
 
 export const verifyResetCode = async (email, code) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/verify-reset-code/`, { email, code });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Verify reset code error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Invalid code' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/verify-reset-code/`, { email, code });
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Verify code error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Invalid code' };
     }
 };
 
 export const resetPassword = async (email, code, password) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/auth/reset-password/`, { 
-            email, 
-            code, 
-            password 
-        });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error('Reset password error:', error.response?.data);
-        return { 
-            success: false, 
-            error: error.response?.data || 'Failed to reset password' 
-        };
+        const res = await axios.post(`${API_BASE_URL}/auth/reset-password/`, { email, code, password });
+        return { success: true, data: res.data };
+    } catch (err) {
+        console.error('Reset password error:', err.response?.data);
+        return { success: false, error: err.response?.data || 'Reset failed' };
     }
 };
 
-// Save tokens to localStorage
+
 export const saveTokens = (tokens) => {
     localStorage.setItem('access_token', tokens.access);
     localStorage.setItem('refresh_token', tokens.refresh);
 };
 
-// Save user data to localStorage
 export const saveUser = (user) => {
     localStorage.setItem('user', JSON.stringify(user));
     localStorage.setItem('user_role', user.role); 

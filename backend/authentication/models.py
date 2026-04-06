@@ -1,15 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-
 import uuid
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
-        #Checks if the email exists
         if not email:
             raise ValueError('Email is required.')
-        #Checks if the email is from Islington College domain
+        # only allow college emails for regular users
         if not extra_fields.get('is_superuser', False):
             if not email.endswith('@islingtoncollege.edu.np'):
                 raise ValueError('Only Islington College emails allowed')
@@ -24,11 +23,10 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_verified', True)
         extra_fields.setdefault('role', 'admin')
-        
         return self.create_user(email, password, **extra_fields)
     
-# User table 
-class User(AbstractBaseUser,PermissionsMixin):
+
+class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, default='student')  
@@ -45,9 +43,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     
     def __str__(self):
         return self.email
-    
 
-#Email verification codes
+
 class EmailVerification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     code = models.CharField(max_length=6)
@@ -57,8 +54,8 @@ class EmailVerification(models.Model):
     
     def __str__(self):
         return f"{self.user.email} - {self.code}"
-    
-# Password Reset Model
+
+
 class PasswordReset(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     code = models.CharField(max_length=6)
