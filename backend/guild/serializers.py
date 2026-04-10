@@ -54,6 +54,7 @@ class EventSerializer(serializers.ModelSerializer):
     created_by_name = serializers.SerializerMethodField()
     pre_joined_users = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
+    is_ended = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -61,7 +62,7 @@ class EventSerializer(serializers.ModelSerializer):
             'event_id', 'guild', 'guild_name', 'title', 'description',
             'category', 'date', 'time_start', 'time_end', 'venue',
             'created_by', 'created_by_name', 'status', 'pre_joined_count',
-            'attendee_count', 'pre_joined_users', 'is_expired',
+            'attendee_count', 'pre_joined_users', 'is_expired', 'is_ended',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['event_id', 'created_at', 'updated_at']
@@ -72,7 +73,18 @@ class EventSerializer(serializers.ModelSerializer):
         return 'Unknown'
 
     def get_is_expired(self, obj):
-        return obj.date < timezone.now().date()
+        try:
+            from datetime import date as date_type
+            event_date = obj.date if isinstance(obj.date, date_type) else obj.date
+            return event_date < timezone.now().date()
+        except (TypeError, AttributeError):
+            return False
+    
+    def get_is_ended(self, obj):
+        try:
+            return obj.is_event_ended()
+        except (TypeError, AttributeError):
+            return False
 
     def get_pre_joined_users(self, obj):
         if obj.status == 'pending':

@@ -245,8 +245,13 @@ export function GuildManagement() {
                     <p className="text-gray-500">No events found for this guild</p>
                 </motion.div>
                 ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {selectedGuild.events.map((event, index) => (
+                <>
+                    {/* Upcoming/Active Events */}
+                    {selectedGuild.events.filter(e => !e.is_ended).length > 0 && (
+                    <div className="mb-12">
+                        <h2 className="text-2xl font-bold text-white mb-6">Upcoming Events</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {selectedGuild.events.filter(e => !e.is_ended).map((event, index) => (
                     <motion.div
                         key={event.event_id}
                         initial={{ opacity: 0, y: 20 }}
@@ -297,7 +302,7 @@ export function GuildManagement() {
                             <div className="flex items-center space-x-3 text-gray-300">
                             <Users className="w-5 h-5 text-gray-500" />
                             {event.status === 'pending' ? (
-                                <span>{event.pre_joined_count} / 5 students pre-joined</span>
+                                <span>{event.pre_joined_count} / 3 students pre-joined</span>
                             ) : (
                                 <span>{event.attendee_count} attending</span>
                             )}
@@ -323,7 +328,67 @@ export function GuildManagement() {
                         </div>
                     </motion.div>
                     ))}
-                </div>
+                        </div>
+                    </div>
+                    )}
+
+                    {/* Past Events */}
+                    {selectedGuild.events.filter(e => e.is_ended).length > 0 && (
+                    <div>
+                        <h2 className="text-2xl font-bold text-white mb-6">Past Events</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {selectedGuild.events.filter(e => e.is_ended).map((event, index) => (
+                            <motion.div
+                                key={event.event_id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
+                                className="bg-[#0f0f0f] rounded-2xl border border-gray-700 overflow-hidden hover:shadow-lg hover:shadow-gray-900/30 transition-shadow opacity-75"
+                            >
+                                {/* Event Header - Muted for past events */}
+                                <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-6 text-white">
+                                <div className="flex items-start justify-between mb-4">
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm">
+                                    {event.category.replace('_', ' ').charAt(0).toUpperCase() + event.category.replace('_', ' ').slice(1)}
+                                    </span>
+                                    <span className="px-3 py-1 bg-gray-500/80 backdrop-blur-sm rounded-full text-sm flex items-center">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Ended
+                                    </span>
+                                </div>
+                                <h3 className="text-2xl mb-2">{event.title}</h3>
+                                <p className="text-sm text-white/70">Created by {event.created_by_name}</p>
+                                </div>
+
+                                {/* Event Details */}
+                                <div className="p-6">
+                                <p className="text-gray-500 mb-6">{event.description}</p>
+
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex items-center space-x-3 text-gray-400">
+                                    <Calendar className="w-5 h-5 text-gray-600" />
+                                    <span>{formatDate(event.date)}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-gray-400">
+                                    <Clock className="w-5 h-5 text-gray-600" />
+                                    <span>{formatTime(event.time_start)} - {formatTime(event.time_end)}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-gray-400">
+                                    <MapPin className="w-5 h-5 text-gray-600" />
+                                    <span>{event.venue}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-gray-400">
+                                    <Users className="w-5 h-5 text-gray-600" />
+                                    <span>{event.attendee_count} attended</span>
+                                    </div>
+                                </div>
+                                </div>
+                            </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+                </>
                 )}
             </>
             )}

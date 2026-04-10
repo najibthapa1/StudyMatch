@@ -103,7 +103,6 @@ def create_guild_event(request, guild_id):
 
         serializer = EventSerializer(event)
         data = serializer.data
-        data['is_expired'] = False
         data['is_joined'] = True
         data['is_confirmed_participant'] = False
         data['photos'] = []

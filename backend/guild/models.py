@@ -1,6 +1,8 @@
 from django.db import models
 from authentication.models import User
 from cloudinary_storage.storage import MediaCloudinaryStorage
+from django.utils import timezone
+from datetime import datetime
 import uuid
         
 # Guild Model
@@ -61,6 +63,16 @@ class Event(models.Model):
     
     def __str__(self):
         return f"{self.title} - {self.guild.name}"
+    
+    def is_event_ended(self):
+        """Check if event has ended based on date and time_end"""
+        try:
+            now = timezone.now()
+            event_end_datetime = datetime.combine(self.date, self.time_end)
+            event_end_aware = timezone.make_aware(event_end_datetime)
+            return now > event_end_aware
+        except (TypeError, AttributeError, ValueError):
+            return False
 
 
 # EventParticipant Model
