@@ -4,6 +4,12 @@ from user_profile.models import Profile
 from django.db import models
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+
+def get_allowed_domains():
+    return getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['islingtoncollege.edu.np'])
 
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
@@ -19,14 +25,21 @@ class RegisterSerializer(serializers.Serializer):
 
 
     def validate_email(self, value):
-        # Check email domain
-        if not value.endswith('@islingtoncollege.edu.np'):
-            raise serializers.ValidationError('Only Islington College emails are allowed')
+        domains = get_allowed_domains()
+        valid = any(value.endswith(f'@{d}') for d in domains)
+        if not valid:
+            raise serializers.ValidationError('Email domain not allowed for registration')
         
-        # Check if email already exists
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already registered')
         
+        return value
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
         return value
 
     def create(self, validated_data):

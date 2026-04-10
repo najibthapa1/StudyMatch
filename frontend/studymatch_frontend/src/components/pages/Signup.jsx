@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/button';
@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { ChevronRight, ChevronLeft, Upload, Eye, EyeOff, CheckCircle, Plus, Trash2 } from 'lucide-react';
-import { registerUser, checkEmailAvailability } from '../../utils/api';
+import { registerUser, checkEmailAvailability, getAllowedDomains } from '../../utils/api';
 
 export function Signup() {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ export function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [allowedDomains, setAllowedDomains] = useState([]);
 
   const pictureInputRef = useRef(null);
 
@@ -37,14 +38,30 @@ export function Signup() {
 
   const totalSteps = 3;
 
-  // Real-time email domain validation only — no API call here
+  // fetch allowed domains on mount
+  useEffect(() => {
+    getAllowedDomains().then(domains => setAllowedDomains(domains));
+  }, []);
+
+  // check if email has valid domain
+  const isValidDomain = (email) => {
+    if (!allowedDomains.length) return true;
+    return allowedDomains.some(d => email.endsWith(`@${d}`));
+  };
+
+  const getDomainHint = () => {
+    if (!allowedDomains.length) return '';
+    return allowedDomains.map(d => `@${d}`).join(', ');
+  };
+
+  // Real-time email domain validation
   const handleEmailChange = (value) => {
     setFormData(prev => ({ ...prev, email: value }));
     setError('');
 
     if (value.includes('@')) {
-      if (!value.endsWith('@islingtoncollege.edu.np')) {
-        setEmailError('Only @islingtoncollege.edu.np emails are allowed');
+      if (!isValidDomain(value)) {
+        setEmailError(`Only ${getDomainHint()} emails are allowed`);
       } else {
         setEmailError('');
       }
@@ -55,7 +72,6 @@ export function Signup() {
 
   // Step 1: validate fields, then check email availability via dedicated endpoint
   const handleStep1Next = async () => {
-    // Basic field validation
     if (!formData.name.trim()) {
       setError('Please enter your full name');
       return;
@@ -64,8 +80,8 @@ export function Signup() {
       setError('Please enter your email');
       return;
     }
-    if (!formData.email.endsWith('@islingtoncollege.edu.np')) {
-      setError('Only @islingtoncollege.edu.np emails are allowed');
+    if (!isValidDomain(formData.email)) {
+      setError(`Only ${getDomainHint()} emails are allowed`);
       return;
     }
     if (formData.password.length < 8) {
@@ -73,7 +89,6 @@ export function Signup() {
       return;
     }
 
-    // Check email availability without creating the user
     setLoading(true);
     try {
       const result = await checkEmailAvailability(formData.email);
@@ -83,8 +98,6 @@ export function Signup() {
         return;
       }
     } catch (err) {
-      // If the endpoint fails for some reason, let the user proceed
-      // The final registration will catch duplicates anyway
       console.warn('Email check failed, proceeding:', err);
     }
     setLoading(false);
@@ -297,7 +310,7 @@ export function Signup() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@islingtoncollege.edu.np"
+                    placeholder={allowedDomains.length ? `you@${allowedDomains[0]}` : 'you@college.edu'}
                     value={formData.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     className={`h-12 ${emailError ? 'border-red-400 focus:ring-red-400' : ''}`}
@@ -308,7 +321,7 @@ export function Signup() {
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">
-                      Only @islingtoncollege.edu.np emails are allowed
+                      {getDomainHint() ? `Only ${getDomainHint()} emails allowed` : 'Use your college email'}
                     </p>
                   )}
                 </div>
@@ -361,6 +374,7 @@ export function Signup() {
                     className="w-full h-12 px-3 rounded-md border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   >
                     <option value="Islington College">Islington College</option>
+                    <option value="Demo College">Demo College</option>
                   </select>
                 </div>
 

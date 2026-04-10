@@ -15,6 +15,16 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// fetch allowed email domains from backend
+export const getAllowedDomains = async () => {
+    try {
+        const res = await axios.get(`${API_BASE_URL}/auth/allowed-domains/`);
+        return res.data.domains || [];
+    } catch (err) {
+        console.error('Failed to fetch domains:', err);
+        return ['islingtoncollege.edu.np'];
+    }
+};
 
 export const registerUser = async (userData) => {
     try {

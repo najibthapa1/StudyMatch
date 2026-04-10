@@ -12,7 +12,14 @@ from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, Ve
 from .utils import generate_verification_code, send_verification_email
 from user_profile.models import Profile 
 from django.conf import settings as django_settings
+
 OTP_MINUTES = getattr(django_settings, 'OTP_EXPIRY_MINUTES', 10)
+
+def get_allowed_domains():
+    return getattr(django_settings, 'ALLOWED_EMAIL_DOMAINS', ['islingtoncollege.edu.np'])
+
+def is_valid_email_domain(email):
+    return any(email.endswith(f'@{d}') for d in get_allowed_domains())
 
 # Generate JWT tokens for user
 def get_tokens_for_user(user):
@@ -66,19 +73,22 @@ def register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def check_email(request):
-    """Check if an email is already registered without creating any user."""
     email = request.data.get('email', '').strip().lower()
  
     if not email:
         return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
  
-    from django.conf import settings
-    allowed_domains = getattr(settings, 'ALLOWED_EMAIL_DOMAINS', ['islingtoncollege.edu.np'])
-    if not any(email.endswith(f'@{domain}') for domain in allowed_domains):
+    if not is_valid_email_domain(email):
         return Response({'available': False, 'error': 'Email domain not allowed'}, status=status.HTTP_400_BAD_REQUEST)
  
     exists = User.objects.filter(email=email).exists()
     return Response({'available': not exists}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_allowed_email_domains(request):
+    domains = get_allowed_domains()
+    return Response({'domains': domains}, status=status.HTTP_200_OK)
 
 @extend_schema(request=VerifyEmailSerializer)
 @api_view(['POST'])
@@ -385,10 +395,14 @@ def reset_password(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validate password length
-        if len(new_password) < 8:
+        # Validate password with Django validators
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(new_password)
+        except DjangoValidationError as e:
             return Response(
-                {'error': 'Password must be at least 8 characters'},
+                {'error': list(e.messages)},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

@@ -1,8 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+from django.conf import settings as django_settings
 import uuid
 
+def get_allowed_domains():
+    return getattr(django_settings, 'ALLOWED_EMAIL_DOMAINS', ['islingtoncollege.edu.np'])
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -10,8 +13,10 @@ class UserManager(BaseUserManager):
             raise ValueError('Email is required.')
         # only allow college emails for regular users
         if not extra_fields.get('is_superuser', False):
-            if not email.endswith('@islingtoncollege.edu.np'):
-                raise ValueError('Only Islington College emails allowed')
+            domains = get_allowed_domains()
+            valid = any(email.endswith(f'@{d}') for d in domains)
+            if not valid:
+                raise ValueError('Email domain not allowed')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)

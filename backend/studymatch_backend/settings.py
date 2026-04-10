@@ -304,4 +304,5 @@ OTP_EXPIRY_MINUTES = 10
 # Allowed College Email Domains 
 ALLOWED_EMAIL_DOMAINS = [
     'islingtoncollege.edu.np',
+    'democollege.edu.np',
 ]

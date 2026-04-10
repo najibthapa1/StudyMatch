@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
-import { loginUser, saveTokens, saveUser } from '../../utils/api';
+import { loginUser, saveTokens, saveUser, getAllowedDomains } from '../../utils/api';
 
 export function Login() {
   const navigate = useNavigate();
@@ -16,6 +16,11 @@ export function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [allowedDomains, setAllowedDomains] = useState([]);
+
+  useEffect(() => {
+    getAllowedDomains().then(domains => setAllowedDomains(domains));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +103,7 @@ export function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="you@islingtoncollege.edu.np"
+                placeholder={allowedDomains.length ? `you@${allowedDomains[0]}` : 'you@college.edu'}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
