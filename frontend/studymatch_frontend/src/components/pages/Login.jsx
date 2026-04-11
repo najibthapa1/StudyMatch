@@ -16,6 +16,7 @@ export function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [suspensionData, setSuspensionData] = useState(null);
   const [allowedDomains, setAllowedDomains] = useState([]);
 
   useEffect(() => {
@@ -45,6 +46,15 @@ export function Login() {
       // Handle errors
       if (result.error.error) {
         setError(result.error.error);
+        
+        // If account is suspended, capture suspension data
+        if (result.error.error === 'Account suspended' && result.error.days_remaining) {
+          setSuspensionData({
+            daysRemaining: result.error.days_remaining,
+            reason: result.error.reason || 'No reason provided',
+            expiresAt: result.error.expires_at
+          });
+        }
         
         // If email not verified, offer to resend
         if (result.error.email) {
@@ -92,8 +102,42 @@ export function Login() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 text-center">{error}</p>
+            <div className={`mb-6 p-4 border rounded-lg ${
+              suspensionData 
+                ? 'bg-orange-50 border-orange-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-sm font-medium mb-2 ${
+                suspensionData 
+                  ? 'text-orange-800' 
+                  : 'text-red-700'
+              }`}>
+                {error}
+              </p>
+              
+              {suspensionData && (
+                <div className={`text-xs space-y-2 ${suspensionData ? 'text-orange-700' : 'text-red-600'}`}>
+                  <p>
+                    <strong>Suspension Duration:</strong> {suspensionData.daysRemaining} day{suspensionData.daysRemaining !== 1 ? 's' : ''} remaining
+                  </p>
+                  {suspensionData.reason && (
+                    <p>
+                      <strong>Reason:</strong> {suspensionData.reason}
+                    </p>
+                  )}
+                  {suspensionData.expiresAt && (
+                    <p>
+                      <strong>Expires:</strong> {new Date(suspensionData.expiresAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
