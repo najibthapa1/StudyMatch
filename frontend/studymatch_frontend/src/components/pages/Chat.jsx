@@ -14,6 +14,7 @@ import {
     CheckCheck,
     MessageCircle,
     Users,
+    Menu,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import { Button } from "../ui/button";
@@ -55,6 +56,7 @@ export default function Chat() {
   const [typingUsers, setTypingUsers] = useState({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("messages");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -129,6 +131,7 @@ export default function Chat() {
 
   const handleSelectConversation = (conversation) => {
     setSelectedChat(conversation);
+    setSidebarOpen(false);
     navigate(`/chat/${conversation.conversation_id}`, { replace: true });
   };
 
@@ -145,6 +148,7 @@ export default function Chat() {
       if (found) {
         handleSelectConversation(found);
       } else {
+        setSidebarOpen(false);
         setSelectedChat({
           conversation_id: result.conversation_id,
           other_user: {
@@ -371,16 +375,32 @@ export default function Chat() {
     <>
       <Navbar />
       <div className="h-screen pt-16 bg-white">
-        <div className="h-full flex">
+        <div className="h-full flex relative">
+          {/* Mobile Sidebar Backdrop */}
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSidebarOpen(false)}
+                className="fixed inset-0 bg-black/50 z-30 sm:hidden"
+              />
+            )}
+          </AnimatePresence>
+
           {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-80 border-r border-gray-200 flex flex-col"
-          >
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl tracking-tight mb-4">Messages</h2>
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0, x: -300 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -300 }}
+                transition={{ duration: 0.3 }}
+                className="fixed top-16 left-0 w-72 h-[calc(100vh-4rem)] border-r border-gray-200 flex flex-col bg-white z-40 sm:hidden"
+              >
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-xl sm:text-2xl tracking-tight mb-4">Messages</h2>
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -433,7 +453,7 @@ export default function Chat() {
                     <button
                       key={conversation.conversation_id}
                       onClick={() => handleSelectConversation(conversation)}
-                      className={`w-full p-4 flex items-start space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                      className={`w-full p-3 sm:p-4 flex items-start space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
                         selectedChat?.conversation_id ===
                         conversation.conversation_id
                           ? "bg-gray-50 border-l-2 border-l-black"
@@ -499,7 +519,7 @@ export default function Chat() {
                     <button
                       key={connection.user_id}
                       onClick={() => handleStartConversation(connection)}
-                      className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left"
+                      className="w-full p-3 sm:p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left"
                     >
                       <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                         {connection.profile.profile_picture ? (
@@ -542,7 +562,176 @@ export default function Chat() {
                 })
               )}
             </div>
-          </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Desktop Sidebar - Always visible on sm and larger */}
+          <div className="hidden sm:flex w-80 border-r border-gray-200 flex-col">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-xl sm:text-2xl tracking-tight mb-4">Messages</h2>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-10"
+                />
+              </div>
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab("messages")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm rounded-md transition-colors ${
+                    activeTab === "messages"
+                      ? "bg-white shadow-sm text-black"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Chats{" "}
+                  {conversations.length > 0 && `(${conversations.length})`}
+                </button>
+                <button
+                  onClick={() => setActiveTab("contacts")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm rounded-md transition-colors ${
+                    activeTab === "contacts"
+                      ? "bg-white shadow-sm text-black"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Contacts {connections.length > 0 && `(${connections.length})`}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === "messages" ? (
+                filteredConversations.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <MessageCircle className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm font-medium">No conversations yet</p>
+                    <p className="text-xs mt-1 text-gray-400">
+                      Switch to Contacts to start a chat
+                    </p>
+                  </div>
+                ) : (
+                  filteredConversations.map((conversation) => (
+                    <button
+                      key={conversation.conversation_id}
+                      onClick={() => handleSelectConversation(conversation)}
+                      className={`w-full p-3 sm:p-4 flex items-start space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                        selectedChat?.conversation_id ===
+                        conversation.conversation_id
+                          ? "bg-gray-50 border-l-2 border-l-black"
+                          : ""
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                          {conversation.other_user?.avatar ? (
+                            <img
+                              src={conversation.other_user.avatar}
+                              alt={conversation.other_user.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-sm font-medium">
+                              {conversation.other_user?.name
+                                ?.charAt(0)
+                                ?.toUpperCase() || "U"}
+                            </span>
+                          )}
+                        </div>
+                        {conversation.other_user?.is_online && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="truncate font-medium text-sm">
+                            {conversation.other_user?.name || "Unknown User"}
+                          </span>
+                          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                            {conversation.last_message?.time_ago || ""}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {conversation.last_message?.content ||
+                            "No messages yet"}
+                        </p>
+                      </div>
+                      {conversation.unread_count > 0 && (
+                        <div className="w-5 h-5 bg-black text-white rounded-full flex items-center justify-center text-xs flex-shrink-0">
+                          {conversation.unread_count}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )
+              ) : filteredConnections.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm font-medium">No connections yet</p>
+                  <p className="text-xs mt-1 text-gray-400">
+                    Connect with students to start chatting
+                  </p>
+                </div>
+              ) : (
+                filteredConnections.map((connection) => {
+                  const hasConversation = conversationUserIds.has(
+                    connection.user_id,
+                  );
+                  return (
+                    <button
+                      key={connection.user_id}
+                      onClick={() => handleStartConversation(connection)}
+                      className="w-full p-3 sm:p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left"
+                    >
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {connection.profile.profile_picture ? (
+                          <img
+                            src={connection.profile.profile_picture}
+                            alt={connection.profile.full_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-medium">
+                            {connection.profile.initials ||
+                              connection.profile.full_name
+                                ?.charAt(0)
+                                ?.toUpperCase() ||
+                              "U"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {connection.profile.full_name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {connection.profile.course ||
+                            connection.profile.university_name ||
+                            ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+                          hasConversation
+                            ? "bg-gray-100 text-gray-500"
+                            : "bg-black text-white"
+                        }`}
+                      >
+                        {hasConversation ? "Open" : "Message"}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
 
           {/* Chat Area */}
           {selectedChat ? (
@@ -551,13 +740,16 @@ export default function Chat() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="p-6 border-b border-gray-200 flex items-center justify-between"
+                className="p-3 sm:p-6 border-b border-gray-200 flex items-center justify-between"
               >
-                <div className="flex items-center space-x-3">
-                  <button onClick={handleBackToList} className="md:hidden mr-2">
-                    <X className="w-5 h-5" />
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <button 
+                    onClick={() => setSidebarOpen(!sidebarOpen)} 
+                    className="sm:hidden mr-2 flex-shrink-0"
+                  >
+                    <Menu className="w-5 h-5" />
                   </button>
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                       {currentContact?.avatar ? (
                         <img
@@ -576,8 +768,8 @@ export default function Chat() {
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-medium">
+                  <div className="min-w-0">
+                    <h3 className="font-medium truncate">
                       {currentContact?.name || "Unknown User"}
                     </h3>
                     <p className="text-sm text-gray-500">
@@ -590,7 +782,7 @@ export default function Chat() {
                 </Button>
               </motion.div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
                 {loading ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
@@ -621,7 +813,7 @@ export default function Chat() {
                         transition={{ duration: 0.3, delay: index * 0.02 }}
                         className={`flex ${isOwn ? "justify-end" : "justify-start"} group`}
                       >
-                        <div className={`max-w-md ${isOwn ? "order-2" : ""}`}>
+                        <div className={`max-w-xs sm:max-w-md ${isOwn ? "order-2" : ""}`}>
                           {!isOwn && (
                             <p className="text-xs text-gray-500 mb-1 ml-3">
                               {msg.sender_name}
@@ -724,9 +916,9 @@ export default function Chat() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="px-6 py-3 border-t border-gray-200 bg-gray-50"
+                    className="px-3 sm:px-6 py-3 border-t border-gray-200 bg-gray-50"
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
                       {filePreview ? (
                         <img
                           src={filePreview}
@@ -763,9 +955,9 @@ export default function Chat() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="p-6 border-t border-gray-200"
+                className="p-3 sm:p-6 border-t border-gray-200"
               >
-                <div className="flex items-end space-x-3">
+                <div className="flex items-end space-x-2 sm:space-x-3">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -821,15 +1013,30 @@ export default function Chat() {
               </motion.div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">
-                  Select a conversation
-                </h3>
-                <p className="text-gray-500 text-sm">
-                  Choose from your chats or start a new one from Contacts
-                </p>
+            <div className="flex-1 flex flex-col">
+              {/* Mobile-only header when no conversation selected */}
+              <div className="p-3 sm:p-6 border-b border-gray-200 flex items-center sm:hidden">
+                <button 
+                  onClick={() => setSidebarOpen(!sidebarOpen)} 
+                  className="flex-shrink-0"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center px-4">
+                  <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-gray-900 mb-2">
+                    Select a conversation
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    Choose from your chats or start a new one from Contacts
+                  </p>
+                  <p className="text-gray-400 text-xs mt-4 sm:hidden">
+                    Tap the menu icon to view conversations
+                  </p>
+                </div>
               </div>
             </div>
           )}
