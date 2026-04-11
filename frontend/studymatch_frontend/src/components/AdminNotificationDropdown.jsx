@@ -115,11 +115,11 @@ export function AdminNotificationDropdown() {
                     }
                 }
             }}
-            className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="relative p-1 sm:p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
         >
-            <Bell className="w-5 h-5 text-white" />
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
             </span>
             )}
@@ -133,7 +133,7 @@ export function AdminNotificationDropdown() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-2 w-96 bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-800 z-50"
+                className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-800 z-50 max-h-[60vh] sm:max-h-[32rem]"
             >
                 {/* Header */}
                 <div className="p-4 border-b border-gray-800 flex items-center justify-between">
@@ -154,7 +154,7 @@ export function AdminNotificationDropdown() {
                 </div>
 
                 {/* Notifications List */}
-                <div className="max-h-[32rem] overflow-y-auto">
+                <div className="max-h-[40vh] sm:max-h-[32rem] overflow-y-auto">
                 {notifications.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
                     <Bell className="w-12 h-12 mx-auto mb-3 text-gray-700" />

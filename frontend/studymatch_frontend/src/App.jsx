@@ -19,6 +19,7 @@ import { ResetPassword } from './components/pages/ResetPassword';
 import { NotFound } from './components/pages/NotFound';
 import { isAuthenticated } from './utils/api';
 import { AdminDashboard } from './components/pages/admin/AdminDashboard';
+import { Notifications as AdminNotifications } from './components/pages/admin/Notification';
 import { UserList } from './components/pages/admin/UserList';
 import { GuildManagement } from './components/pages/admin/GuildManagement';
 import { Analytics } from './components/pages/admin/Analytics';
@@ -53,7 +54,7 @@ function App() {
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserList /></ProtectedRoute>} />
         <Route path="/admin/guilds" element={<ProtectedRoute adminOnly><GuildManagement /></ProtectedRoute>} />
         <Route path="/admin/analytics" element={<ProtectedRoute adminOnly><Analytics /></ProtectedRoute>} />
-        <Route path="/admin/notifications" element={<ProtectedRoute adminOnly><Notifications /></ProtectedRoute>} />
+        <Route path="/admin/notifications" element={<ProtectedRoute adminOnly><AdminNotifications /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Dashboard /></Suspense></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Profile /></Suspense></ProtectedRoute>} />
         <Route path="/connect" element={<ProtectedRoute><Suspense fallback={<LoadingPage/>}><Discovery /></Suspense></ProtectedRoute>} />

@@ -14,23 +14,21 @@ export function Notifications() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        fetchNotifications();
-    }, [filter]);
-
     const fetchNotifications = async () => {
         try {
-        setLoading(true);
-        const data = await getAdminNotifications(filter);
-        setNotifications(data.notifications);
-        setUnreadCount(data.unread_count);
-        setLoading(false);
+            setLoading(true);
+            const data = await getAdminNotifications(filter);
+            setNotifications(data.notifications);
+            setUnreadCount(data.unread_count);
+            setLoading(false);
         } catch (err) {
-        console.error('Error fetching notifications:', err);
-        setError(err.error || 'Failed to load notifications');
-        setLoading(false);
+            console.error('Error fetching notifications:', err);
+            setError(err.error || 'Failed to load notifications');
+            setLoading(false);
         }
     };
+
+    useEffect(() => {fetchNotifications();}, [filter]);
 
     const handleMarkAsRead = async (notificationId) => {
         try {

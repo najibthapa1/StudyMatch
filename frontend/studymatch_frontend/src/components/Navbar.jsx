@@ -55,45 +55,45 @@ export function Navbar() {
         <motion.nav
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+            className="fixed top-2 left-0 right-0 z-50 flex justify-center px-2 sm:px-4">
             <div className="w-full max-w-7xl">
-            <div className="bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-md px-6 py-3">
-            <div className="flex items-center justify-between">
+            <div className="bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-md px-2 sm:px-4 md:px-6 py-2">
+            <div className="flex items-center justify-between min-w-0">
                 {/* Left - Hamburger Menu */}
                 <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
                 >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
 
                 {/* Center - Logo */}
-                <Link to="/dashboard" className="absolute left-1/2 -translate-x-1/2">
-                <h1 className="tracking-tight">STUDYMATCH</h1>
+                <Link to="/dashboard" className="absolute left-1/2 -translate-x-1/2 flex-shrink-0">
+                <h1 className="tracking-tight text-xs sm:text-sm md:text-base font-medium">STUDYMATCH</h1>
                 </Link>
 
                 {/* Right - Notifications, Profile & Logout */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <NotificationDropdown />
                 
                 {/* Profile Button with Avatar/Initials */}
                 <Link to="/profile">
-                    <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors group">
+                    <button className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-full transition-colors group flex-shrink-0">
                     {user?.profile?.profile_picture ? (
                         <img 
                         src={user.profile.profile_picture} 
                         alt="Profile" 
-                        className="w-6 h-6 rounded-full object-cover"
+                        className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover"
                         />
                     ) : (
-                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-[10px] font-medium text-gray-700">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-[8px] sm:text-[10px] font-medium text-gray-700">
                             {getInitials()}
                         </span>
                         </div>
                     )}
                     {/* Tooltip on hover */}
-                    <div className="absolute hidden group-hover:block top-full right-0 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap">
+                    <div className="absolute hidden group-hover:block top-full right-0 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap z-10">
                         {user?.profile?.full_name || 'Profile'}
                     </div>
                     </button>
@@ -101,12 +101,12 @@ export function Navbar() {
 
                 <button
                     onClick={handleLogout}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors group relative"
+                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-full transition-colors group relative flex-shrink-0"
                     title="Logout"
                 >
-                    <LogOut className="w-5 h-5 text-gray-700" />
+                    <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
                     {/* Tooltip on hover */}
-                    <div className="absolute hidden group-hover:block top-full right-0 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap">
+                    <div className="absolute hidden group-hover:block top-full right-0 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap z-10">
                     Logout
                     </div>
                 </button>

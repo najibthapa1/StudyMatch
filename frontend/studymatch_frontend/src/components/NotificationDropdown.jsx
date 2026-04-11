@@ -104,11 +104,11 @@ export function NotificationDropdown() {
                         }
                     }
                 }}
-                className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="relative p-1 sm:p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
             >
-                <Bell className="w-5 h-5 text-gray-700" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                    <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
@@ -122,7 +122,7 @@ export function NotificationDropdown() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden"
+                        className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden max-h-[60vh] sm:max-h-[28rem]"
                     >
                         {/* Header */}
                         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -143,7 +143,7 @@ export function NotificationDropdown() {
                         </div>
 
                         {/* List */}
-                        <div className="max-h-[28rem] overflow-y-auto">
+                        <div className="max-h-[40vh] sm:max-h-[28rem] overflow-y-auto">
                             {notifications.length === 0 ? (
                                 <div className="py-12 text-center">
                                     <Bell className="w-10 h-10 mx-auto mb-3 text-gray-200" />

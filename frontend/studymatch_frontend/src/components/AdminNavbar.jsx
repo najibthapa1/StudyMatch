@@ -28,33 +28,33 @@ export function AdminNavbar({ onLogout }) {
         <motion.nav
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+            className="fixed top-2 left-0 right-0 z-50 flex justify-center px-2 sm:px-4">
             <div className="w-full max-w-7xl">
-            <div className="bg-black/80 backdrop-blur-md rounded-full border border-gray-800 shadow-lg px-6 py-3">
-            <div className="flex items-center justify-between">
+            <div className="bg-black/80 backdrop-blur-md rounded-full border border-gray-800 shadow-lg px-2 sm:px-4 md:px-6 py-2">
+            <div className="flex items-center justify-between min-w-0">
                 {/* Left - Hamburger Menu */}
                 <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="p-1 sm:p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                 >
-                <Menu className="w-5 h-5 text-white" />
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
 
                 {/* Center - Logo */}
-                <Link to="/admin/dashboard" className="absolute left-1/2 -translate-x-1/2">
-                <h1 className="tracking-tight text-white font-semibold">STUDYMATCH ADMIN</h1>
+                <Link to="/admin/dashboard" className="absolute left-1/2 -translate-x-1/2 flex-shrink-0">
+                <h1 className="tracking-tight text-white font-semibold text-xs sm:text-sm md:text-base">STUDYMATCH ADMIN</h1>
                 </Link>
 
                 {/* Right - Notifications, Profile & Logout */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <AdminNotificationDropdown />
                 
                 <button
                     onClick={handleLogout}
-                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                    className="p-1 sm:p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                     title="Logout"
                 >
-                    <LogOut className="w-5 h-5 text-white" />
+                    <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </button>
                 </div>
             </div>
