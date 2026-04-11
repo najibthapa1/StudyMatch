@@ -852,6 +852,7 @@ def admin_update_report(request, report_id):
     """Admin: update report status and add notes."""
     from .models import UserReport
     from django.utils import timezone
+    from notification.service import _create
 
     try:
         report = UserReport.objects.get(report_id=report_id)
@@ -860,6 +861,8 @@ def admin_update_report(request, report_id):
 
     new_status = request.data.get('status')
     admin_notes = request.data.get('admin_notes', report.admin_notes)
+    send_notification = request.data.get('send_notification', False)
+    notification_message = request.data.get('notification_message', '')
 
     valid_statuses = ['pending', 'reviewed', 'dismissed', 'action_taken']
     if new_status and new_status not in valid_statuses:
@@ -871,5 +874,21 @@ def admin_update_report(request, report_id):
     report.reviewed_by = request.user
     report.reviewed_at = timezone.now()
     report.save()
+
+    # Send notification to reported user if requested
+    if send_notification and notification_message:
+        try:
+            _create(
+                recipient=report.reported_user,
+                ntype='system',
+                title='Account Review Notice',
+                msg=notification_message,
+                sender=request.user
+            )
+        except Exception as e:
+            return Response({
+                'message': 'Report updated but failed to send notification',
+                'error': str(e)
+            }, status=status.HTTP_200_OK)
 
     return Response({'message': 'Report updated'}, status=status.HTTP_200_OK)

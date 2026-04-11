@@ -37,6 +37,8 @@ export function ReportsManagement() {
     const [expandedId, setExpandedId] = useState(null);
     const [updating, setUpdating] = useState(null);
     const [adminNotes, setAdminNotes] = useState({});
+    const [sendNotification, setSendNotification] = useState({});
+    const [notificationMessage, setNotificationMessage] = useState({});
 
     const fetchReports = async () => {
         try {
@@ -60,9 +62,14 @@ export function ReportsManagement() {
             await updateAdminReport(reportId, {
                 status: newStatus,
                 admin_notes: adminNotes[reportId] || '',
+                send_notification: sendNotification[reportId] || false,
+                notification_message: notificationMessage[reportId] || '',
             });
             await fetchReports();
             setExpandedId(null);
+            // Clear notification state
+            setSendNotification(prev => ({ ...prev, [reportId]: false }));
+            setNotificationMessage(prev => ({ ...prev, [reportId]: '' }));
         } catch (err) {
             alert(err.error || 'Failed to update report');
         } finally {
@@ -258,6 +265,45 @@ export function ReportsManagement() {
                                                 rows={2}
                                                 className="w-full bg-black/40 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 resize-none focus:outline-none focus:border-gray-500"
                                             />
+                                        </div>
+
+                                        {/* Send Notification Section */}
+                                        <div className="border-t border-gray-800 pt-4">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={sendNotification[report.report_id] ?? false}
+                                                        onChange={e =>
+                                                            setSendNotification(prev => ({
+                                                                ...prev,
+                                                                [report.report_id]: e.target.checked
+                                                            }))
+                                                        }
+                                                        className="w-4 h-4 rounded border-gray-600 bg-black/40 cursor-pointer"
+                                                    />
+                                                    <span className="text-sm text-gray-300">Send notification to user</span>
+                                                </label>
+                                            </div>
+                                            
+                                            {sendNotification[report.report_id] && (
+                                                <div>
+                                                    <p className="text-xs text-gray-500 mb-2">Message to Send</p>
+                                                    <textarea
+                                                        value={notificationMessage[report.report_id] ?? ''}
+                                                        onChange={e =>
+                                                            setNotificationMessage(prev => ({
+                                                                ...prev,
+                                                                [report.report_id]: e.target.value
+                                                            }))
+                                                        }
+                                                        placeholder="Example: 'You have been reported for violating community guidelines. This is a warning. Continued violations will result in account suspension.'"
+                                                        rows={3}
+                                                        className="w-full bg-black/40 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 resize-none focus:outline-none focus:border-gray-500"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-2">The user will receive this message as a notification</p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex flex-wrap gap-2">
