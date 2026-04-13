@@ -225,8 +225,8 @@ def calculate_match_score(user_profile, other_profile):
         
         if user_course == other_course:
             course_score = 100.0
-        elif get_string_similarity(user_course, other_course) >= 0.85:
-            course_score = 80.0
+        elif get_string_similarity(user_course, other_course) >= 0.60:
+            course_score = 100.0
         else:
             course_score = 0.0
     else:
